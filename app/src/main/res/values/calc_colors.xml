@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="sky_navy">#01274A</color>
+    <color name="sky_cyan">#01D1FF</color>
+    <color name="sky_cream">#FCF9F5</color>
+    <color name="sky_cloud">#FFFFFF</color>
+    <color name="sky_soft">#CAF5FE</color>
+
+    <color name="calc_primary">#01274A</color>
+    <color name="calc_on_primary">#FFFFFF</color>
+    <color name="calc_primary_container">#BDEFFF</color>
+    <color name="calc_on_primary_container">#01274A</color>
+    <color name="calc_secondary">#005F80</color>
+    <color name="calc_secondary_container">#CAF5FE</color>
+    <color name="calc_on_secondary_container">#01274A</color>
+    <color name="calc_background">#FCF9F5</color>
+    <color name="calc_on_surface">#01274A</color>
+    <color name="calc_on_surface_variant">#3A4D66</color>
+    <color name="calc_surface_lowest">#FFFFFF</color>
+    <color name="calc_surface_low">#F8F4EE</color>
+    <color name="calc_surface_container">#F3EFE8</color>
+    <color name="calc_surface_high">#FFFFFF</color>
+    <color name="calc_surface_highest">#E6ECF2</color>
+    <color name="calc_outline">#5A6B80</color>
+    <color name="calc_outline_variant">#CCD3DB</color>
+    <color name="calc_inverse_surface">#01274A</color>
+    <color name="calc_inverse_on_surface">#FCF9F5</color>
+    <color name="calc_inverse_primary">#01D1FF</color>
+    <color name="calc_error">#B00020</color>
+    <color name="calc_on_error">#FFFFFF</color>
+
+    <color name="calc_accent">#01D1FF</color>
+    <color name="calc_on_accent">#01274A</color>
+    <color name="calc_accent_stroke">#01274A</color>
+    <color name="calc_toolbar">#01274A</color>
+    <color name="calc_on_toolbar">#FCF9F5</color>
+    <color name="calc_system_bar">#01274A</color>
+
+    <color name="sol_elevation">#0A4A7A</color>
+    <color name="sol_windage">#8A3B00</color>
+    <color name="sol_lead">#1B5E20</color>
+    <color name="sol_windage2">#6D3A1F</color>
+    <color name="sol_warn">#B00020</color>
+    <color name="tag_empirical">#5B3FA6</color>
+</resources>

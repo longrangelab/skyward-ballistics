@@ -1,0 +1,13 @@
+.gradle/
+build/
+.kotlin/
+local.properties
+.idea/
+*.iml
+captures/
+release-signing/
+dist/
+*.keystore
+*.jks
+google-services.json
+client_secret*.json

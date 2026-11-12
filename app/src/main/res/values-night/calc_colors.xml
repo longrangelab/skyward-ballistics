@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="calc_primary">#01D1FF</color>
+    <color name="calc_on_primary">#01274A</color>
+    <color name="calc_primary_container">#0B4A6B</color>
+    <color name="calc_on_primary_container">#D6F6FF</color>
+    <color name="calc_secondary">#7FE3FF</color>
+    <color name="calc_secondary_container">#124A6E</color>
+    <color name="calc_on_secondary_container">#D6F6FF</color>
+    <color name="calc_background">#04182E</color>
+    <color name="calc_on_surface">#FCF9F5</color>
+    <color name="calc_on_surface_variant">#C5D0DC</color>
+    <color name="calc_surface_lowest">#03111F</color>
+    <color name="calc_surface_low">#071F3A</color>
+    <color name="calc_surface_container">#0A2644</color>
+    <color name="calc_surface_high">#0E2F52</color>
+    <color name="calc_surface_highest">#163B62</color>
+    <color name="calc_outline">#8C9BAD</color>
+    <color name="calc_outline_variant">#2B4666</color>
+    <color name="calc_inverse_surface">#FCF9F5</color>
+    <color name="calc_inverse_on_surface">#01274A</color>
+    <color name="calc_inverse_primary">#005F80</color>
+    <color name="calc_error">#FFB4AB</color>
+    <color name="calc_on_error">#690005</color>
+
+    <color name="calc_accent_stroke">#01D1FF</color>
+    <color name="calc_toolbar">#01274A</color>
+    <color name="calc_system_bar">#03111F</color>
+
+    <color name="sol_elevation">#5CDDFF</color>
+    <color name="sol_windage">#FFB870</color>
+    <color name="sol_lead">#8EE59B</color>
+    <color name="sol_windage2">#F0B79A</color>
+    <color name="sol_warn">#FFB4AB</color>
+    <color name="tag_empirical">#B9A4F0</color>
+</resources>

@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Skyward.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/sky_cream</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_icon</item>
+        <item name="postSplashScreenTheme">@style/Theme.DragCurve.Calc</item>
+    </style>
+
+    <style name="Base.Theme.Skyward.Calc" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/calc_primary</item>
+        <item name="colorOnPrimary">@color/calc_on_primary</item>
+        <item name="colorPrimaryContainer">@color/calc_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/calc_on_primary_container</item>
+        <item name="colorPrimaryInverse">@color/calc_inverse_primary</item>
+        <item name="colorSecondary">@color/calc_secondary</item>
+        <item name="colorOnSecondary">@color/calc_on_primary</item>
+        <item name="colorSecondaryContainer">@color/calc_secondary_container</item>
+        <item name="colorOnSecondaryContainer">@color/calc_on_secondary_container</item>
+        <item name="colorTertiary">@color/calc_secondary</item>
+        <item name="colorOnTertiary">@color/calc_on_primary</item>
+        <item name="colorTertiaryContainer">@color/calc_secondary_container</item>
+        <item name="colorOnTertiaryContainer">@color/calc_on_secondary_container</item>
+        <item name="android:colorBackground">@color/calc_background</item>
+        <item name="colorOnBackground">@color/calc_on_surface</item>
+        <item name="colorSurface">@color/calc_background</item>
+        <item name="colorOnSurface">@color/calc_on_surface</item>
+        <item name="colorSurfaceVariant">@color/calc_surface_highest</item>
+        <item name="colorOnSurfaceVariant">@color/calc_on_surface_variant</item>
+        <item name="colorSurfaceDim">@color/calc_surface_container</item>
+        <item name="colorSurfaceBright">@color/calc_surface_high</item>
+        <item name="colorSurfaceContainerLowest">@color/calc_surface_lowest</item>
+        <item name="colorSurfaceContainerLow">@color/calc_surface_low</item>
+        <item name="colorSurfaceContainer">@color/calc_surface_container</item>
+        <item name="colorSurfaceContainerHigh">@color/calc_surface_high</item>
+        <item name="colorSurfaceContainerHighest">@color/calc_surface_highest</item>
+        <item name="colorSurfaceInverse">@color/calc_inverse_surface</item>
+        <item name="colorOnSurfaceInverse">@color/calc_inverse_on_surface</item>
+        <item name="colorOutline">@color/calc_outline</item>
+        <item name="colorOutlineVariant">@color/calc_outline_variant</item>
+        <item name="colorError">@color/calc_error</item>
+        <item name="colorOnError">@color/calc_on_error</item>
+        <item name="android:statusBarColor">@color/calc_system_bar</item>
+        <item name="android:navigationBarColor">@color/calc_system_bar</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowSoftInputMode">adjustResize</item>
+
+        <item name="textAppearanceBodyLarge">@style/TextAppearance.Skyward.BodyLarge</item>
+        <item name="textAppearanceBodyMedium">@style/TextAppearance.Skyward.BodyMedium</item>
+        <item name="textAppearanceBodySmall">@style/TextAppearance.Skyward.BodySmall</item>
+        <item name="textAppearanceTitleMedium">@style/TextAppearance.Skyward.TitleMedium</item>
+        <item name="textAppearanceLabelLarge">@style/TextAppearance.Skyward.LabelLarge</item>
+        <item name="textAppearanceLabelMedium">@style/TextAppearance.Skyward.LabelMedium</item>
+        <item name="textAppearanceLargePopupMenu">@style/TextAppearance.Skyward.BodyLarge</item>
+        <item name="textAppearanceSmallPopupMenu">@style/TextAppearance.Skyward.BodyLarge</item>
+
+        <item name="toolbarStyle">@style/Widget.Skyward.Toolbar</item>
+        <item name="materialButtonStyle">@style/Widget.Skyward.Button</item>
+        <item name="materialButtonOutlinedStyle">@style/Widget.Skyward.Button.Outlined</item>
+        <item name="borderlessButtonStyle">@style/Widget.Skyward.Button.Text</item>
+        <item name="bottomNavigationStyle">@style/Widget.Skyward.BottomNav</item>
+        <item name="navigationRailStyle">@style/Widget.Skyward.NavRail</item>
+        <item name="extendedFloatingActionButtonStyle">@style/Widget.Skyward.ExtendedFab</item>
+        <item name="chipStyle">@style/Widget.Skyward.Chip</item>
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.Skyward.Dialog</item>
+    </style>
+
+    <style name="Base.V27.Theme.Skyward.Calc" parent="Base.Theme.Skyward.Calc" />
+    <style name="Theme.DragCurve.Calc" parent="Base.V27.Theme.Skyward.Calc" />
+
+    <style name="TextAppearance.Skyward.BodyLarge" parent="TextAppearance.Material3.BodyLarge">
+        <item name="android:textSize">18sp</item>
+    </style>
+    <style name="TextAppearance.Skyward.BodyMedium" parent="TextAppearance.Material3.BodyMedium">
+        <item name="android:textSize">17sp</item>
+    </style>
+    <style name="TextAppearance.Skyward.BodySmall" parent="TextAppearance.Material3.BodySmall">
+        <item name="android:textSize">15sp</item>
+    </style>
+    <style name="TextAppearance.Skyward.TitleMedium" parent="TextAppearance.Material3.TitleMedium">
+        <item name="android:textSize">19sp</item>
+    </style>
+    <style name="TextAppearance.Skyward.LabelLarge" parent="TextAppearance.Material3.LabelLarge">
+        <item name="android:textSize">17sp</item>
+    </style>
+    <style name="TextAppearance.Skyward.LabelMedium" parent="TextAppearance.Material3.LabelMedium">
+        <item name="android:textSize">14sp</item>
+    </style>
+    <style name="TextAppearance.Skyward.ToolbarTitle" parent="TextAppearance.Material3.TitleLarge">
+        <item name="android:textSize">22sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+    <style name="TextAppearance.Skyward.Wordmark" parent="TextAppearance.Material3.TitleLarge">
+        <item name="android:textSize">20sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">0.14</item>
+    </style>
+
+    <style name="Widget.Skyward.Toolbar" parent="Widget.Material3.Toolbar">
+        <item name="android:background">@color/calc_toolbar</item>
+        <item name="titleTextColor">@color/calc_on_toolbar</item>
+        <item name="subtitleTextColor">@color/calc_on_toolbar</item>
+        <item name="titleTextAppearance">@style/TextAppearance.Skyward.ToolbarTitle</item>
+        <item name="navigationIconTint">@color/calc_on_toolbar</item>
+        <item name="materialThemeOverlay">@style/ThemeOverlay.Skyward.Toolbar</item>
+        <item name="popupTheme">@style/ThemeOverlay.Skyward.Popup</item>
+    </style>
+    <style name="ThemeOverlay.Skyward.Toolbar" parent="">
+        <item name="colorControlNormal">@color/calc_on_toolbar</item>
+        <item name="colorOnSurface">@color/calc_on_toolbar</item>
+        <item name="colorOnSurfaceVariant">@color/calc_on_toolbar</item>
+        <item name="colorPrimary">@color/sky_cyan</item>
+        <item name="android:textColorPrimary">@color/calc_on_toolbar</item>
+        <item name="android:textColorSecondary">@color/calc_on_toolbar</item>
+    </style>
+    <style name="ThemeOverlay.Skyward.Popup" parent="">
+        <item name="colorControlNormal">@color/calc_on_surface_variant</item>
+        <item name="colorOnSurface">@color/calc_on_surface</item>
+        <item name="colorOnSurfaceVariant">@color/calc_on_surface_variant</item>
+        <item name="colorPrimary">@color/calc_primary</item>
+        <item name="android:textColorPrimary">@color/calc_on_surface</item>
+        <item name="android:textColorSecondary">@color/calc_on_surface_variant</item>
+    </style>
+
+    <style name="Widget.Skyward.Button" parent="Widget.Material3.Button">
+        <item name="backgroundTint">@color/calc_button_bg</item>
+        <item name="android:textColor">@color/calc_button_text</item>
+        <item name="iconTint">@color/calc_button_text</item>
+        <item name="strokeColor">@color/calc_button_stroke</item>
+        <item name="strokeWidth">1.5dp</item>
+        <item name="android:minHeight">56dp</item>
+        <item name="android:textSize">18sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:letterSpacing">0.01</item>
+    </style>
+    <style name="Widget.Skyward.Button.Outlined" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="strokeColor">@color/calc_outline</item>
+        <item name="strokeWidth">1.5dp</item>
+        <item name="android:minHeight">52dp</item>
+        <item name="android:textSize">18sp</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+    <style name="Widget.Skyward.Button.Text" parent="Widget.Material3.Button.TextButton">
+        <item name="android:minHeight">48dp</item>
+        <item name="android:textSize">17sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+    <style name="Widget.Skyward.Button.Dialog" parent="Widget.Material3.Button.TextButton.Dialog">
+        <item name="android:minHeight">52dp</item>
+        <item name="android:textSize">18sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+    <style name="Widget.Skyward.ExtendedFab" parent="Widget.Material3.ExtendedFloatingActionButton.Icon.Primary">
+        <item name="backgroundTint">@color/calc_accent</item>
+        <item name="android:textColor">@color/calc_on_accent</item>
+        <item name="iconTint">@color/calc_on_accent</item>
+        <item name="strokeColor">@color/calc_accent_stroke</item>
+        <item name="strokeWidth">1.5dp</item>
+        <item name="android:textSize">18sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:minHeight">60dp</item>
+    </style>
+    <style name="Widget.Skyward.Chip" parent="Widget.Material3.Chip.Filter">
+        <item name="chipMinHeight">48dp</item>
+        <item name="android:textSize">17sp</item>
+        <item name="chipStrokeColor">@color/calc_outline</item>
+    </style>
+
+    <style name="Widget.Skyward.BottomNav" parent="Widget.Material3.BottomNavigationView">
+        <item name="backgroundTint">@color/calc_surface_high</item>
+        <item name="itemIconTint">@color/calc_nav_icon</item>
+        <item name="itemTextColor">@color/calc_nav_text</item>
+        <item name="itemIconSize">28dp</item>
+        <item name="itemActiveIndicatorStyle">@style/Widget.Skyward.BottomNav.Indicator</item>
+        <item name="itemTextAppearanceActive">@style/TextAppearance.Skyward.NavLabel.Active</item>
+        <item name="itemTextAppearanceInactive">@style/TextAppearance.Skyward.NavLabel</item>
+    </style>
+    <style name="Widget.Skyward.NavRail" parent="Widget.Material3.NavigationRailView">
+        <item name="backgroundTint">@color/calc_surface_high</item>
+        <item name="android:background">@color/calc_surface_high</item>
+        <item name="itemIconTint">@color/calc_nav_icon</item>
+        <item name="itemTextColor">@color/calc_nav_text</item>
+        <item name="itemIconSize">28dp</item>
+        <item name="itemMinHeight">72dp</item>
+        <item name="menuGravity">center</item>
+        <item name="itemActiveIndicatorStyle">@style/Widget.Skyward.BottomNav.Indicator</item>
+        <item name="itemTextAppearanceActive">@style/TextAppearance.Skyward.NavLabel.Active</item>
+        <item name="itemTextAppearanceInactive">@style/TextAppearance.Skyward.NavLabel</item>
+    </style>
+    <style name="Widget.Skyward.BottomNav.Indicator" parent="Widget.Material3.BottomNavigationView.ActiveIndicator">
+        <item name="android:color">@color/sky_cyan</item>
+    </style>
+    <style name="TextAppearance.Skyward.NavLabel" parent="TextAppearance.Material3.LabelMedium">
+        <item name="android:textSize">14sp</item>
+    </style>
+    <style name="TextAppearance.Skyward.NavLabel.Active">
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="ThemeOverlay.Skyward.Dialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="buttonBarPositiveButtonStyle">@style/Widget.Skyward.Button.Dialog</item>
+        <item name="buttonBarNegativeButtonStyle">@style/Widget.Skyward.Button.Dialog</item>
+        <item name="buttonBarNeutralButtonStyle">@style/Widget.Skyward.Button.Dialog</item>
+        <item name="materialAlertDialogBodyTextStyle">@style/Widget.Skyward.DialogBody</item>
+        <item name="android:checkedTextViewStyle">@style/Widget.Skyward.DialogChoice</item>
+    </style>
+    <style name="Widget.Skyward.DialogBody" parent="MaterialAlertDialog.Material3.Body.Text">
+        <item name="android:textSize">18sp</item>
+        <item name="android:textColor">@color/calc_on_surface</item>
+    </style>
+    <style name="Widget.Skyward.DialogChoice" parent="Widget.Material3.CheckedTextView">
+        <item name="android:textSize">19sp</item>
+        <item name="android:minHeight">56dp</item>
+    </style>
+</resources>

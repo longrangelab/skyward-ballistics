@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="calc_calculate">Calculate</string>
+    <string name="calc_open_solution">Full solution &amp; table</string>
+    <string name="calc_settings">Settings</string>
+    <string name="calc_firearms">Firearms</string>
+    <string name="calc_ammo">Ammo</string>
+    <string name="calc_bullet_library">Bullet library</string>
+    <string name="calc_my_bullets">My bullets</string>
+    <string name="calc_add_new_bullet">Add a new bullet</string>
+    <string name="calc_my_bullets_empty">Your bullets — add the bullets you shoot, with their BCs. They\'re saved on this phone and in your backups.</string>
+    <string name="calc_save">Save</string>
+    <string name="calc_solution">Solution</string>
+    <string name="calc_table">Table</string>
+    <string name="calc_target_card">Target Card</string>
+    <string name="calc_calibrate">Calibrate</string>
+    <string name="calc_share">Share</string>
+    <string name="calc_working">Working it out</string>
+    <string name="calc_more">More</string>
+    <string name="calc_selected">Selected</string>
+    <string name="calc_search_bullets">Search name, maker, caliber, 105gr…</string>
+    <string name="calc_add_firearm">Add Firearm</string>
+    <string name="calc_edit_firearm">Edit Firearm</string>
+    <string name="calc_add_ammo">Add Ammo</string>
+    <string name="calc_edit_ammo">Edit Ammo</string>
+    <string name="calc_add_bullet">Add bullet</string>
+    <string name="calc_edit_bullet">Edit Bullet</string>
+    <string name="calc_bullet">Bullet</string>
+    <string name="calc_edit">Edit</string>
+    <string name="calc_duplicate">Duplicate</string>
+    <string name="calc_delete">Delete</string>
+    <string name="calc_discard_title">Leave without saving?</string>
+    <string name="calc_discard">Leave without saving</string>
+    <string name="calc_keep_editing">Keep editing</string>
+    <string name="calc_no_firearms">You have no firearms yet.\n\nTap \"Add Firearm\" to set up your first one.</string>
+    <string name="calc_no_ammo">This firearm has no ammo yet.\n\nTap \"Add Ammo\" to add the ammo you shoot in it.</string>
+    <string name="calc_no_bullets">No bullets match your search.\n\nTry fewer words, or tap \"Add Bullet\" to enter your own.</string>
+    <string name="calc_bc_hint">Enter the ballistic coefficient (BC) from the bullet box. If the maker lists several BCs, add a row for each with the lowest speed it applies to. One row must have a lowest speed of 0.</string>
+    <string name="calc_empirical">Empirical</string>
+    <string name="calc_no_library">No bullet library imported yet.\n\nImport a Skyward Ballistics bullet library file (skyward-library JSON of kind \"bullets\"; older arcledger-library and dragcurve-library files work too). You can still add your own bullets with Add Bullet.</string>
+    <string name="calc_import_library">Import bullet library…</string>
+    <string name="calc_remove_library">Remove bullet library</string>
+
+    <string name="calc_tab_calculator">Calculator</string>
+    <string name="calc_tab_gear">My gear</string>
+    <string name="calc_tab_analysis">Analysis</string>
+    <string name="calc_round_count">Round count</string>
+    <string name="calc_tab_more">More</string>
+    <string name="calc_hit_sim">Hit probability</string>
+    <string name="calc_tnf_compare">TNF compare</string>
+    <string name="calc_libraries">Libraries</string>
+    <string name="calc_backup_sync">Backup &amp; sync</string>
+    <string name="calc_help">Help</string>
+    <string name="calc_enter_own_bc">Enter my own BC</string>
+    <string name="calc_no_bullets_own_bc">No bullet library imported, and no bullets of your own yet.\n\nThat is fine: tap \"Enter my own BC\" below and type the BC from the box.</string>
+    <string name="calc_no_match_own_bc">No bullet matches your search.\n\nTry fewer words, or tap \"Enter my own BC\" below.</string>
+</resources>

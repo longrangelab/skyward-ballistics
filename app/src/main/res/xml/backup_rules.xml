@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <include domain="file" path="calc/" />
+    <include domain="sharedpref" path="calc_ui.xml" />
+</full-backup-content>

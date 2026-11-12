@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="accent">#01D1FF</color>
+    <color name="banner_bg">#3A2A12</color>
+    <color name="banner_text">#FFE0B2</color>
+    <color name="error">#FFB4AB</color>
+</resources>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/nav_solution" android:icon="@drawable/ic_calc_target" android:title="@string/calc_solution" />
+    <item android:id="@+id/nav_table" android:icon="@drawable/ic_calc_table" android:title="@string/calc_table" />
+    <item android:id="@+id/nav_card" android:icon="@drawable/ic_calc_card" android:title="@string/calc_target_card" />
+    <item android:id="@+id/nav_calibrate" android:icon="@drawable/ic_calc_wrench" android:title="@string/calc_calibrate" />
+</menu>

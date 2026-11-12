@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Skyward Ballistics</string>
+    <string name="service_label">Skyward profile import — brings your firearms and ammo over from another calculator app</string>
+    <string name="service_description">Lets Skyward Ballistics bring your existing firearm, ammo and bullet profiles over from a supported calculator app. It only runs after you press Start under \"Import from another calculator app\", only reads, and never changes, saves or deletes anything in the other app. It makes no network connections.</string>
+
+    <string name="banner_title">Profile import is off</string>
+    <string name="banner_text">Turn on \"Skyward profile import\" in Accessibility settings so Skyward can bring your profiles over.</string>
+    <string name="banner_restricted">Android 13+: if the switch is greyed out (\"Restricted setting\"), open App info → ⋮ menu → \"Allow restricted settings\", then try again.</string>
+    <string name="open_accessibility">Accessibility settings</string>
+    <string name="open_app_info">App info</string>
+
+
+
+
+</resources>
