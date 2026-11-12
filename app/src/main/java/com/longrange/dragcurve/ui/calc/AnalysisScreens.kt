@@ -543,20 +543,22 @@ class TnfCompareScreen : CalcActivity() {
         form.clear()
         form.note("TNF = muzzle velocity × G7 BC. The higher it is, the less the wind moves the bullet. " +
             "Ammo with several BCs, a G1 BC or a drag curve gets the single G7 BC that drifts the same at 1000 yd.")
+        val ranked = rows?.takeIf { it.size == entries.size }?.let { TnfCompare.byTnf(it) }
+        val order = ranked?.map { it.index } ?: entries.indices.toList()
         if (entries.size >= 2) {
             form.group {
-                choice("Compare against", listOf("Highest TNF") + entries.mapIndexed { i, e -> "${i + 1}. " + (rows?.getOrNull(i)?.title ?: e.label.ifBlank { e.kind.name.lowercase() }) }, ref + 1) { i ->
-                    ref = i - 1; save(); recompute()
+                val names = order.mapIndexed { k, i -> "${k + 1}. " + (rows?.getOrNull(i)?.title ?: entries[i].label.ifBlank { entries[i].kind.name.lowercase() }) }
+                choice("Compare against", listOf("Highest TNF") + names, if (ref < 0) 0 else order.indexOf(ref) + 1) { k ->
+                    ref = if (k == 0) -1 else order[k - 1]; save(); recompute()
                 }
             }
         }
-        val rs = rows
         if (entries.isEmpty()) form.note("Nothing to compare yet. Add your saved ammo, a bullet at a velocity, or type in a velocity and BC.")
-        else if (rs == null) form.note("Working it out…")
+        else if (ranked == null) form.note("Working it out…")
         else {
-            val maxTnf = rs.mapNotNull { it.tnf }.maxOrNull() ?: 1.0
-            val maxDrift = rs.mapNotNull { it.driftMil }.maxOrNull() ?: 1.0
-            rs.forEachIndexed { i, r -> card(i, r, maxTnf, maxDrift, s) }
+            val maxTnf = ranked.mapNotNull { it.tnf }.maxOrNull() ?: 1.0
+            val maxDrift = ranked.mapNotNull { it.driftMil }.maxOrNull() ?: 1.0
+            ranked.forEachIndexed { k, r -> card(k, r, maxTnf, maxDrift, s) }
         }
         form.header("Add")
         val full = entries.size >= TnfCompare.MAX_ENTRIES
@@ -570,7 +572,8 @@ class TnfCompareScreen : CalcActivity() {
         }
     }
 
-    private fun card(i: Int, r: TnfCompare.Row, maxTnf: Double, maxDrift: Double, s: com.longrange.dragcurve.model.AppSettings) {
+    private fun card(rank: Int, r: TnfCompare.Row, maxTnf: Double, maxDrift: Double, s: com.longrange.dragcurve.model.AppSettings) {
+        val i = r.index
         form.addView(View(this).apply { layoutParams = LinearLayout.LayoutParams(1, dp(10)) })
         form.group {
             val col = LinearLayout(this@TnfCompareScreen).apply { orientation = LinearLayout.VERTICAL; setPadding(0, dp(4), 0, dp(6)) }
@@ -580,7 +583,7 @@ class TnfCompareScreen : CalcActivity() {
             }
             val head = LinearLayout(this@TnfCompareScreen).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
             val names = LinearLayout(this@TnfCompareScreen).apply { orientation = LinearLayout.VERTICAL }
-            names.addView(tv("${i + 1}. ${r.title}", 18f, bold = true))
+            names.addView(tv("${rank + 1}. ${r.title}", 18f, bold = true))
             if (r.subtitle.isNotEmpty()) names.addView(tv(r.subtitle, 14f, muted = true))
             head.addView(names, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
             if (r.tnf != null) head.addView(tv(fmt(r.tnf, 0), 30f, bold = true).apply { contentDescription = "TNF ${fmt(r.tnf, 0)}" })

@@ -11,7 +11,7 @@ plugins {
     id("org.jetbrains.compose")
 }
 
-val appVersion = "1.3.0"
+val appVersion = "1.3.1"
 val appName = "Skyward Ballistics"
 
 val sharedSources = listOf(
@@ -132,7 +132,7 @@ tasks.matching { it.name.startsWith("createDistributable") || it.name.startsWith
 
 val windowsZip by tasks.registering(Zip::class) {
     group = "distribution"
-    description = "Builds the Windows app folder and zips it to dist/SkywardBallistics-Windows-1.3.zip"
+    description = "Builds the Windows app folder and zips it to dist/SkywardBallistics-Windows-<version>.zip"
     dependsOn("createDistributable")
     from(File(packageBase, "main/app"))
     archiveFileName.set("SkywardBallistics-Windows-${appVersion.substringBeforeLast(".0")}.zip")
