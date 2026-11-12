@@ -44,7 +44,11 @@ object TnfCompare {
         val isReference: Boolean,
         val matchMv: MatchMv,
         val problem: String = "",
+        val index: Int = 0,
     )
+
+    fun byTnf(rows: List<Row>): List<Row> =
+        rows.sortedWith(compareByDescending<Row> { it.tnf != null }.thenByDescending { it.tnf ?: 0.0 })
 
     fun customFlight(label: String, mvFps: Double, g7: Double): Flight {
         val b = Bullet(id = "tnf-custom", name = label.ifBlank { "Typed in" }, diameterIn = 0.308, weightGr = 175.0,
@@ -128,7 +132,7 @@ object TnfCompare {
                 entry = x.e, title = x.f?.title ?: x.e.label.ifBlank { "Missing" }, subtitle = x.f?.subtitle ?: "",
                 mvFps = x.mv, g7Bc = x.bc, bcIsEquivalent = x.eq, tnf = x.tnf, driftMil = x.drift,
                 deltaTnf = if (x.tnf != null && ref?.tnf != null) x.tnf - ref.tnf else null,
-                isReference = i == refIdx, matchMv = match, problem = x.problem,
+                isReference = i == refIdx, matchMv = match, problem = x.problem, index = i,
             )
         }
     }

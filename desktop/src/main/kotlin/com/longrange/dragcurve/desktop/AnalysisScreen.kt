@@ -324,7 +324,8 @@ private fun TnfScreen(st: AppState) {
                         headers.forEachIndexed { k, t -> Text(t, Modifier.weight(widths[k]), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold) }
                     }
                     HorizontalDivider()
-                    rs.forEachIndexed { idx, r ->
+                    TnfCompare.byTnf(rs).forEach { r ->
+                        val idx = r.index
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                             Box(Modifier.weight(widths[0])) { RadioButton(r.isReference, { ref = idx; AnalysisMemory.tnfRef = idx }) }
                             Column(Modifier.weight(widths[1])) {
