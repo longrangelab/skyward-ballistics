@@ -19,6 +19,18 @@ object TnfCompare {
     const val MV_LOW = 800.0
     const val MV_HIGH = 4500.0
 
+    const val ABOUT_TITLE = "What is TNF?"
+    const val ABOUT =
+        "TNF (Trajectory Normalizing Factor) comes from Patriot Valley Arms. It is one simple number for comparing " +
+            "how well different ammo resists the wind.\n\n" +
+            "TNF = muzzle velocity (fps) × G7 BC. For example, 2,800 fps × 0.300 = 840.\n\n" +
+            "The higher the TNF, the less the wind moves the bullet. Two loads with the same TNF drift about the same in the " +
+            "same wind, even with different bullets, weights or calibres. That makes it a quick way to choose between loads " +
+            "without working out a full trajectory for each one.\n\n" +
+            "TNF only describes wind drift. It says nothing about drop, energy or recoil.\n\n" +
+            "In Skyward, ammo with several BCs, a G1 BC or a drag curve gets the single G7 BC that drifts the same at 1000 yd, " +
+            "so every load is compared on the same scale."
+
     enum class Kind { AMMO, BULLET, CUSTOM }
 
     data class Entry(val kind: Kind, val refId: String = "", val label: String = "", val mvFps: Double? = null, val g7Bc: Double? = null)

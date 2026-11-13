@@ -543,6 +543,12 @@ class TnfCompareScreen : CalcActivity() {
         form.clear()
         form.note("TNF = muzzle velocity × G7 BC. The higher it is, the less the wind moves the bullet. " +
             "Ammo with several BCs, a G1 BC or a drag curve gets the single G7 BC that drifts the same at 1000 yd.")
+        form.group {
+            nav(TnfCompare.ABOUT_TITLE, "", sub = "Where TNF comes from and how to read it") {
+                com.google.android.material.dialog.MaterialAlertDialogBuilder(this@TnfCompareScreen)
+                    .setTitle(TnfCompare.ABOUT_TITLE).setMessage(TnfCompare.ABOUT).setPositiveButton(android.R.string.ok, null).show()
+            }
+        }
         val ranked = rows?.takeIf { it.size == entries.size }?.let { TnfCompare.byTnf(it) }
         val order = ranked?.map { it.index } ?: entries.indices.toList()
         if (entries.size >= 2) {

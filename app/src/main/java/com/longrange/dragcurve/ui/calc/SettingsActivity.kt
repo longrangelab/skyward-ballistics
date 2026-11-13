@@ -3,6 +3,7 @@ package com.longrange.dragcurve.ui.calc
 import android.os.Bundle
 import android.widget.ScrollView
 import com.longrange.dragcurve.R
+import com.longrange.dragcurve.model.AppInfo
 import com.longrange.dragcurve.model.AppSettings
 
 class SettingsActivity : CalcActivity() {
@@ -92,6 +93,17 @@ class SettingsActivity : CalcActivity() {
             number("Furthest distance", Quantity.DISTANCE, s.tableMaxYd, { v -> if (v != null && v >= 50 && v <= 5000) save(settings.copy(tableMaxYd = v)) },
                 sub = "Where the table stops")
             switch("Furthest distance first", s.tableSortDescending, sub = "Lists the table from far to near") { c -> save(settings.copy(tableSortDescending = c)) }
+        }
+
+        form.header("About")
+        form.group {
+            info("Version", "Skyward Ballistics ${versionName(this@SettingsActivity)}")
+            nav(AppInfo.DISCLAIMER_TITLE, "", sub = "Predictions, not guarantees: confirm with live fire") { showDisclaimer(this@SettingsActivity) }
+            nav("Privacy policy", "", sub = "Your data stays on your phone unless you choose to sync or share it") {
+                openLink(this@SettingsActivity, AppInfo.PRIVACY_URL)
+            }
+            nav("License", "GPL-3.0", sub = AppInfo.LICENSE_NOTE) { openLink(this@SettingsActivity, AppInfo.LICENSE_URL) }
+            nav("Source code", "", sub = "On GitHub") { openLink(this@SettingsActivity, AppInfo.SOURCE_URL) }
         }
         scroll.post { scroll.scrollTo(0, y) }
     }

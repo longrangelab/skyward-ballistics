@@ -288,6 +288,9 @@ private fun TnfScreen(st: AppState) {
             Section("What is TNF?") {
                 Note("TNF = muzzle velocity × G7 BC. One number for how well ammo bucks the wind: higher means less wind drift. " +
                     "Ammo with several BCs, a G1 BC or a drag curve gets the single G7 BC that drifts the same at 1000 yd.")
+                var showAbout by remember { mutableStateOf(false) }
+                OutlinedButton(onClick = { showAbout = true }) { Text("Read more about TNF") }
+                MessageDialog(if (showAbout) Message(TnfCompare.ABOUT_TITLE, TnfCompare.ABOUT) else null) { showAbout = false }
             }
             val full = entries.size >= TnfCompare.MAX_ENTRIES
             Section("Add your ammo") {

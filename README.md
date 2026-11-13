@@ -22,6 +22,28 @@ A ballistic calculator for Android, with a Windows version that shares the same 
 
 The app ships without a bullet library. Add your own bullets, or import bullet files you have.
 
+## Check your shots
+
+Skyward Ballistics gives predictions, not guarantees. Its answers are only as good as the numbers
+you enter. Always confirm your data with live fire at known distances before you rely on it, and
+follow safe firearm handling, your range's rules and your local laws. You use it at your own risk;
+it comes with no warranty (see the license).
+
+## Privacy
+
+No accounts, no ads, no analytics, no tracking. Your data stays on your device unless you choose to
+sync or share it. See [PRIVACY.md](PRIVACY.md).
+
+## License
+
+Copyright (C) 2026 longrangelab.
+
+Skyward Ballistics is free software: you can redistribute it and/or modify it under the terms of the
+GNU General Public License as published by the Free Software Foundation, version 3 only
+(GPL-3.0-only). It is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE. See [LICENSE](LICENSE) for the full text.
+
 ## Building
 
 Requirements: JDK 17 and the Android SDK (platform 35).
