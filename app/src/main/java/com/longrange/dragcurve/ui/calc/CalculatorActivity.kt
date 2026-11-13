@@ -141,6 +141,11 @@ class CalculatorActivity : CalcActivity() {
         if (launchShowing()) { ui.postDelayed({ if (!isFinishing && !isDestroyed) startupNotices() }, 400); return }
         noticesDone = true
         when {
+            !uiPrefs().getBoolean(K_DISCLAIMER_SEEN, false) -> showDisclaimer(this) {
+                uiPrefs().edit().putBoolean(K_DISCLAIMER_SEEN, true).apply()
+                noticesDone = false
+                if (!isFinishing && !isDestroyed) startupNotices()
+            }
             InstallState.guidePending(this) -> startActivity(Intent(this, GuideActivity::class.java))
             InstallState.restoreNoticePending(this) -> {
                 InstallState.restoreNoticeShown(this)
@@ -636,6 +641,7 @@ class CalculatorActivity : CalcActivity() {
         private var empiricalChecked = false
         private var launchShown = false
         private var noticesDone = false
+        private const val K_DISCLAIMER_SEEN = "disclaimerSeen"
         private var logoPlayTime = 0L
         private val io = Executors.newSingleThreadExecutor()
     }

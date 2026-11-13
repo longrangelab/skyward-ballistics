@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.longrange.dragcurve.model.AppInfo
 
 @Composable
 fun SettingsScreen(st: AppState) {
@@ -38,6 +39,13 @@ fun SettingsScreen(st: AppState) {
         Section("About") {
             Note("$APP_NAME $APP_VERSION for Windows. Same calculations and files as the Android app.")
             Note("Data folder: ${st.data.baseDir.absolutePath}")
+        }
+        Section(AppInfo.DISCLAIMER_TITLE) {
+            Note(AppInfo.DISCLAIMER)
+        }
+        Section("Privacy and license") {
+            Note("Your data stays on this computer unless you choose to sync or share it. Privacy policy: ${AppInfo.PRIVACY_URL}")
+            Note("${AppInfo.LICENSE_NOTE} Source code: ${AppInfo.SOURCE_URL}")
         }
     }
 }

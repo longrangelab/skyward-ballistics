@@ -11,7 +11,7 @@ plugins {
     id("org.jetbrains.compose")
 }
 
-val appVersion = "1.3.1"
+val appVersion = "1.3.2"
 val appName = "Skyward Ballistics"
 
 val sharedSources = listOf(
