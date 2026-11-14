@@ -29,7 +29,11 @@ object Stores {
             SyncScheduler.init(context)
             BackupFolder.init(app)
             com.longrange.dragcurve.sync.SharedSync.init(app)
-            s.onDataChanged = { SyncScheduler.onLocalChange(); BackupFolder.onLocalChange(); com.longrange.dragcurve.sync.SharedSync.onLocalChange() }
+            com.longrange.dragcurve.sync.CoriolisSync.init(app)
+            s.onDataChanged = {
+                SyncScheduler.onLocalChange(); BackupFolder.onLocalChange(); com.longrange.dragcurve.sync.SharedSync.onLocalChange()
+                com.longrange.dragcurve.sync.CoriolisSync.onLocalChange()
+            }
             store = s
             SafetyCopies.dailyIfDue(app)
             return s
