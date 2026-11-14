@@ -21,6 +21,7 @@ import com.longrange.dragcurve.exchange.SkywardFormat
 import com.longrange.dragcurve.model.Libraries
 import com.longrange.dragcurve.model.LibraryFormat
 import com.longrange.dragcurve.model.LibraryKind
+import com.longrange.dragcurve.sync.CoriolisSync
 import com.longrange.dragcurve.sync.DriveAuth
 import com.longrange.dragcurve.sync.SharedFileSync
 import com.longrange.dragcurve.sync.SharedSync
@@ -223,6 +224,7 @@ abstract class ImportExportActivity : CalcActivity() {
     override fun onResume() {
         super.onResume()
         SyncScheduler.addListener(syncListener); BackupFolder.addListener(syncListener); SharedSync.addListener(syncListener)
+        CoriolisSync.addListener(syncListener)
         render()
         if (section == Section.LIBRARIES) checkSources()
     }
@@ -318,7 +320,7 @@ abstract class ImportExportActivity : CalcActivity() {
         }.setNegativeButton(android.R.string.cancel, null).show()
     }
 
-    override fun onPause() { SyncScheduler.removeListener(syncListener); BackupFolder.removeListener(syncListener); SharedSync.removeListener(syncListener); super.onPause() }
+    override fun onPause() { SyncScheduler.removeListener(syncListener); BackupFolder.removeListener(syncListener); SharedSync.removeListener(syncListener); CoriolisSync.removeListener(syncListener); super.onPause() }
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
@@ -439,6 +441,7 @@ abstract class ImportExportActivity : CalcActivity() {
         renderSharedSync()
         renderBackupFolder()
         renderDriveSync()
+        renderCoriolisSync()
 
         form.header("Earlier copies on this phone")
         form.group {
@@ -620,6 +623,60 @@ abstract class ImportExportActivity : CalcActivity() {
             }
         }
         form.note("Your data is stored in your own Google Drive, in a hidden app folder (it doesn't show in your Drive file list, and nothing goes to any other server). Changes are merged record by record: the newest edit wins and deletions carry over. App settings are not synced.")
+    }
+
+    private fun renderCoriolisSync() {
+        val st = CoriolisSync.status(this)
+        form.header("Coriolis base station")
+        form.group {
+            if (!st.on) {
+                nav("Sync with a Coriolis base station", "", sub = "When this phone is on a Wind Lab base station's Wi-Fi, keep its firearms, ammo and bullets " +
+                    "in step with this app. With Google Drive sync on too, this app carries gear between Drive and the base") {
+                    CoriolisSync.turnOn(this@ImportExportActivity); render()
+                }
+            } else {
+                val line = when {
+                    st.running -> "Syncing…"
+                    st.lastResult == null -> if (st.inRange) "Not synced yet" else "Waiting for a base station (join its Wi-Fi)"
+                    !st.lastOk -> "⚠ " + st.lastResult
+                    else -> "Synced " + ago(st.lastSyncAt) + " · " + st.lastResult
+                }
+                info("Status", if (st.inRange) "in range" else "not in range", sub = line)
+                st.firmware?.let { info("Base firmware", it) }
+                custom(com.google.android.material.button.MaterialButton(this@ImportExportActivity).apply {
+                    text = if (st.running) "Syncing…" else "Sync now"
+                    textSize = 20f
+                    isEnabled = !st.running
+                    contentDescription = "Sync with the Coriolis base station"
+                    setOnClickListener { syncCoriolis() }
+                })
+                switch("Sync automatically", st.auto, sub = "Every 30 seconds while the app is open and the base is in range, and a few seconds after changes. " +
+                    "It never removes more than a few records without asking") { on -> CoriolisSync.setAuto(on) }
+                nav("Stop syncing with base stations", "", sub = "Everything stays on this phone and on the base") {
+                    CoriolisSync.turnOff(this@ImportExportActivity); render()
+                }
+            }
+        }
+        form.note("The base station keeps one gear file that every phone on its Wi-Fi shares. Records are merged the same way as Google Drive sync. " +
+            "The base holds up to 384 KB: if your bullet library is bigger, the bullets your ammo uses and your calibres go first, and the rest stay on this phone. " +
+            "Live wind is not part of this.")
+    }
+
+    protected fun syncCoriolis(allowDeletions: Int = 0) {
+        CoriolisSync.syncNow(this, allowDeletions) { o ->
+            if (isFinishing || isDestroyed) return@syncNow
+            render()
+            when (o) {
+                is SharedFileSync.Outcome.Done -> alert("Synced with the base station", o.text)
+                is SharedFileSync.Outcome.NeedsConfirmation -> MaterialAlertDialogBuilder(this)
+                    .setTitle("Remove ${o.count} record(s) on this device?")
+                    .setMessage(o.text + "\n\nA safety copy is taken first (Restore an earlier copy, below).")
+                    .setPositiveButton("Remove and sync") { _, _ -> syncCoriolis(o.count) }
+                    .setNegativeButton(android.R.string.cancel, null).show()
+                else -> alert("Sync didn't finish", o.text)
+            }
+        }
+        render()
     }
 
     private fun signInToDrive(email: String? = null) {

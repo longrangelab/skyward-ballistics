@@ -26,6 +26,7 @@ val sharedSources = listOf(
     "com/longrange/dragcurve/sync/SyncEngine.kt",
     "com/longrange/dragcurve/sync/SyncFile.kt",
     "com/longrange/dragcurve/sync/SharedFileSync.kt",
+    "com/longrange/dragcurve/sync/CoriolisBase.kt",
 )
 
 java {
