@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -24,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.longrange.dragcurve.exchange.ImportResult
 import com.longrange.dragcurve.exchange.LibraryIngest
+import com.longrange.dragcurve.sync.CoriolisPush
 import com.longrange.dragcurve.sync.SharedFileSync
 import com.longrange.dragcurve.sync.SyncFile
 import kotlinx.coroutines.Dispatchers
@@ -155,6 +157,20 @@ fun BackupScreen(st: AppState) {
         }
     }
 
+    fun sendToBase() {
+        busy = "Sending…"
+        scope.launch {
+            val o = withContext(Dispatchers.IO) { data.sendToBase() }
+            busy = null
+            st.changed()
+            when (o) {
+                is CoriolisPush.Outcome.Sent -> st.tell("Sent to the base station", o.text)
+                is CoriolisPush.Outcome.UpToDate -> st.tell("The base station is up to date", o.text)
+                is CoriolisPush.Outcome.Failed -> st.tell("Sending didn't finish", o.text)
+            }
+        }
+    }
+
     fun chooseShared() {
         val f = FilePicker.open("Choose the shared sync file (e.g. skyward-sync.json in your Google Drive folder)").firstOrNull() ?: return
         data.sharedSync.choose(f); st.changed(); sync()
@@ -199,6 +215,31 @@ fun BackupScreen(st: AppState) {
                 Note("Sync reads the file, adds what is new on either side, applies deletions, keeps the newest change of each record and writes the result back. " +
                     "It also runs when the app starts. Settings are not synced.")
             }
+        }
+        Section("Coriolis base station") {
+            val c = data.coriolis
+            Note("Join the base station's Wi-Fi (WindStation), then press Send. This computer's firearms, ammo and bullets replace the gear on the base. " +
+                "Sending only goes one way: nothing on the base is ever read into this computer, and changes made on the Coriolis page are replaced at the next send.")
+            Note(when {
+                busy == "Sending…" -> "Sending…"
+                c.lastResult == null -> "Not sent yet."
+                !c.lastOk -> "⚠ " + c.lastResult
+                else -> "Checked ${CalcCore.time(c.lastSentAt)} · ${c.lastResult}"
+            })
+            Button(onClick = { sendToBase() }, enabled = busy == null) { Text("Send to the base station") }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                val on = remember(st.rev) { c.sendUsedPrivate }
+                Checkbox(on, { v ->
+                    if (!v) { c.sendUsedPrivate = false; st.changed() }
+                    else st.ask("Send those bullets to the base station?",
+                        "The drag data of the bullets your ammo uses from your own bullet libraries will be stored on the base station. " +
+                            "Anyone who joins its Wi-Fi can read it. Turning this off later takes them off the base at the next send, " +
+                            "but anyone who read them meanwhile keeps them.", "Send them") { c.sendUsedPrivate = true; st.changed() }
+                }, enabled = busy == null)
+                Text("Send bullets from my own libraries that my ammo uses")
+            }
+            Note("Anyone who joins the base's Wi-Fi can read its gear. Bullets from your own bullet libraries never go to the base, and neither does ammo that uses them unless you tick the box above. " +
+                "From the Empirical Precision component library, the bullets your ammo uses and your calibres go first, up to the base's 384 KB.")
         }
         Section("What is on this computer") {
             Text("${snap.rifles.size} firearms · ${snap.loads.size} ammo · ${snap.bullets.size} of your own bullets · " +

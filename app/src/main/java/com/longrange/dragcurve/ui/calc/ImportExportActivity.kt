@@ -21,6 +21,7 @@ import com.longrange.dragcurve.exchange.SkywardFormat
 import com.longrange.dragcurve.model.Libraries
 import com.longrange.dragcurve.model.LibraryFormat
 import com.longrange.dragcurve.model.LibraryKind
+import com.longrange.dragcurve.sync.CoriolisPush
 import com.longrange.dragcurve.sync.CoriolisSync
 import com.longrange.dragcurve.sync.DriveAuth
 import com.longrange.dragcurve.sync.SharedFileSync
@@ -630,66 +631,62 @@ abstract class ImportExportActivity : CalcActivity() {
         form.header("Coriolis base station")
         form.group {
             if (!st.on) {
-                nav("Sync with a Coriolis base station", "", sub = "When this phone is on a Wind Lab base station's Wi-Fi, keep its firearms, ammo and bullets " +
-                    "in step with this app. With Google Drive sync on too, this app carries gear between Drive and the base") {
+                nav("Send gear to a Coriolis base station", "", sub = "When this phone is on a Wind Lab base station's Wi-Fi, put this app's firearms, ammo and bullets " +
+                    "on the base. Nothing on the base ever changes this app") {
                     CoriolisSync.turnOn(this@ImportExportActivity); render()
                 }
             } else {
                 val line = when {
-                    st.running -> "Syncing…"
-                    st.lastResult == null -> if (st.inRange) "Not synced yet" else "Waiting for a base station (join its Wi-Fi)"
+                    st.running -> "Sending…"
+                    st.lastResult == null -> if (st.inRange) "Not sent yet" else "Waiting for a base station (join its Wi-Fi)"
                     !st.lastOk -> "⚠ " + st.lastResult
-                    else -> "Synced " + ago(st.lastSyncAt) + " · " + st.lastResult
+                    else -> "Checked " + ago(st.lastSentAt) + " · " + st.lastResult
                 }
                 info("Status", if (st.inRange) "in range" else "not in range", sub = line)
                 st.firmware?.let { info("Base firmware", it) }
                 custom(com.google.android.material.button.MaterialButton(this@ImportExportActivity).apply {
-                    text = if (st.running) "Syncing…" else "Sync now"
+                    text = if (st.running) "Sending…" else "Send now"
                     textSize = 20f
                     isEnabled = !st.running
-                    contentDescription = "Sync with the Coriolis base station"
-                    setOnClickListener { syncCoriolis() }
+                    contentDescription = "Send this app's gear to the Coriolis base station"
+                    setOnClickListener { sendToCoriolis() }
                 })
-                switch("Sync automatically", st.auto, sub = "Every 30 seconds while the app is open and the base is in range, and a few seconds after changes. " +
-                    "It never removes more than a few records without asking") { on -> CoriolisSync.setAuto(on) }
+                switch("Send automatically", st.auto, sub = "Every 30 seconds while the app is open and the base is in range, and a few seconds after changes. " +
+                    "Nothing is written when the base already has this app's gear") { on -> CoriolisSync.setAuto(on) }
                 switch("Send bullets from my own libraries that my ammo uses", st.sendUsedPrivate,
-                    sub = "Off: ammo that uses a bullet from your own bullet libraries stays on this phone. " +
+                    sub = "Off: ammo that uses a bullet from your own bullet libraries stays off the base. " +
                         "On: that ammo and just those bullets go to the base, where anyone who joins its Wi-Fi can read them") { on ->
                     if (!on) CoriolisSync.setSendUsedPrivate(false)
                     else MaterialAlertDialogBuilder(this@ImportExportActivity)
                         .setTitle("Send those bullets to the base station?")
                         .setMessage("The drag data of the bullets your ammo uses from your own bullet libraries will be stored on the base station. " +
-                            "Anyone who joins its Wi-Fi can read it, and every phone that syncs with the base copies it. " +
-                            "Turning this off later doesn't remove what is already on the base or on those phones.")
+                            "Anyone who joins its Wi-Fi can read it. Turning this off later takes them off the base at the next send, " +
+                            "but anyone who read them meanwhile keeps them.")
                         .setPositiveButton("Send them") { _, _ -> CoriolisSync.setSendUsedPrivate(true); render() }
                         .setNegativeButton(android.R.string.cancel) { _, _ -> render() }
                         .setOnCancelListener { render() }
                         .show()
                 }
-                nav("Stop syncing with base stations", "", sub = "Everything stays on this phone and on the base") {
+                nav("Stop sending to base stations", "", sub = "Everything stays on this phone, and the base keeps what it has") {
                     CoriolisSync.turnOff(this@ImportExportActivity); render()
                 }
             }
         }
-        form.note("The base station keeps one gear file that every phone on its Wi-Fi shares, and anyone who joins its Wi-Fi can read it. " +
-            "Records are merged the same way as Google Drive sync. " +
-            "Bullets from your own bullet libraries never go to the base, and neither does ammo that uses them unless you turn that on above. " +
-            "From the Empirical Precision component library, the bullets your ammo uses and your calibres go first, up to the base's 384 KB, and the rest stay on this phone. " +
+        form.note("Sending only goes one way: this app's gear replaces the gear on the base station, and nothing on the base is ever read into this app. " +
+            "Changes made on the Coriolis page are replaced at the next send, so make changes in this app. " +
+            "Anyone who joins the base's Wi-Fi can read its gear. Bullets from your own bullet libraries never go to the base, and neither does ammo that uses them unless you turn that on above. " +
+            "From the Empirical Precision component library, the bullets your ammo uses and your calibres go first, up to the base's 384 KB. " +
             "Live wind is not part of this.")
     }
 
-    protected fun syncCoriolis(allowDeletions: Int = 0) {
-        CoriolisSync.syncNow(this, allowDeletions) { o ->
-            if (isFinishing || isDestroyed) return@syncNow
+    protected fun sendToCoriolis() {
+        CoriolisSync.sendNow(this) { o ->
+            if (isFinishing || isDestroyed) return@sendNow
             render()
             when (o) {
-                is SharedFileSync.Outcome.Done -> alert("Synced with the base station", o.text)
-                is SharedFileSync.Outcome.NeedsConfirmation -> MaterialAlertDialogBuilder(this)
-                    .setTitle("Remove ${o.count} record(s) on this device?")
-                    .setMessage(o.text + "\n\nA safety copy is taken first (Restore an earlier copy, below).")
-                    .setPositiveButton("Remove and sync") { _, _ -> syncCoriolis(o.count) }
-                    .setNegativeButton(android.R.string.cancel, null).show()
-                else -> alert("Sync didn't finish", o.text)
+                is CoriolisPush.Outcome.Sent -> alert("Sent to the base station", o.text)
+                is CoriolisPush.Outcome.UpToDate -> alert("The base station is up to date", o.text)
+                is CoriolisPush.Outcome.Failed -> alert("Sending didn't finish", o.text)
             }
         }
         render()

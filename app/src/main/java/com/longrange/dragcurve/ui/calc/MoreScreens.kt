@@ -106,7 +106,7 @@ class MoreActivity : CalcActivity() {
                 "shared sync file " + if (shared.on) "on" else "off",
                 "Google Drive sync " + if (sync.enabled) "on" else "off",
                 "backup folder " + if (folder.on) "on" else "off",
-                "Coriolis base sync " + if (com.longrange.dragcurve.sync.CoriolisSync.status(this@MoreActivity).on) "on" else "off",
+                "sending to Coriolis base " + if (com.longrange.dragcurve.sync.CoriolisSync.status(this@MoreActivity).on) "on" else "off",
             ).joinToString(" · ")
             nav(getString(R.string.calc_backup_sync), "", sub = backup.replaceFirstChar { it.uppercase() } +
                 (if (folder.error.isNotEmpty() || (sync.enabled && !sync.lastOk)) "\n⚠ needs a look" else "")) {
