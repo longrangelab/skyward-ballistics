@@ -70,6 +70,7 @@ abstract class CalcActivity : AppCompatActivity() {
         applyKeepScreenOn()
         SyncScheduler.onAppResume()
         com.longrange.dragcurve.sync.SharedSync.onAppResume(this)
+        com.longrange.dragcurve.sync.CoriolisSync.onAppResume(this)
         DriveBackupHook.onAppResume(this)
         BackupFolder.onAppResume(this)
         SafetyCopies.dailyIfDue(this)

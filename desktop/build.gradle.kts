@@ -11,7 +11,7 @@ plugins {
     id("org.jetbrains.compose")
 }
 
-val appVersion = "1.4.0"
+val appVersion = "1.5.0"
 val appName = "Skyward Ballistics"
 
 val sharedSources = listOf(
@@ -26,6 +26,7 @@ val sharedSources = listOf(
     "com/longrange/dragcurve/sync/SyncEngine.kt",
     "com/longrange/dragcurve/sync/SyncFile.kt",
     "com/longrange/dragcurve/sync/SharedFileSync.kt",
+    "com/longrange/dragcurve/sync/CoriolisBase.kt",
 )
 
 java {
