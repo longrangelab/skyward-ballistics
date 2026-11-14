@@ -44,7 +44,19 @@ class UrlConnectionBaseHttp(
     private val readTimeoutMs: Int = 30_000,
     private val open: (URL) -> URLConnection = { it.openConnection() },
 ) : BaseHttp {
-    override fun request(method: String, path: String, headers: Map<String, String>, body: ByteArray?): BaseResponse {
+    override fun request(method: String, path: String, headers: Map<String, String>, body: ByteArray?): BaseResponse =
+        try {
+            once(method, path, headers, body)
+        } catch (e: IOException) {
+            // The base serves one client at a time; while other phones poll live wind it
+            // sometimes drops a connection ("Connection reset"). A GET is safe to repeat once.
+            // An upload is not repeated: the base= check would turn a repeat into a false conflict.
+            if (method != "GET" || e is java.net.SocketTimeoutException) throw e
+            Thread.sleep(300)
+            once(method, path, headers, body)
+        }
+
+    private fun once(method: String, path: String, headers: Map<String, String>, body: ByteArray?): BaseResponse {
         val c = open(URL(baseUrl.trimEnd('/') + path)) as HttpURLConnection
         try {
             c.connectTimeout = connectTimeoutMs
