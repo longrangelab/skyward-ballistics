@@ -24,19 +24,21 @@ object CoriolisSync {
 
     data class Status(
         val on: Boolean, val auto: Boolean, val running: Boolean, val inRange: Boolean,
-        val lastSyncAt: Long, val lastResult: String?, val lastOk: Boolean, val waitingForYou: Boolean,
+        val lastSentAt: Long, val lastResult: String?, val lastOk: Boolean,
         val firmware: String?,
         val sendUsedPrivate: Boolean = false,
     )
 
     private lateinit var app: Context
     private val main by lazy { Handler(Looper.getMainLooper()) }
-    private val io = Executors.newSingleThreadExecutor { r -> Thread(r, "coriolis-sync").also { it.isDaemon = true } }
+    private val io = Executors.newSingleThreadExecutor { r -> Thread(r, "coriolis-send").also { it.isDaemon = true } }
     private val running = AtomicBoolean(false)
     private val again = AtomicBoolean(false)
-    @Volatile private var syncThread: Thread? = null
+    private val loud = AtomicBoolean(false)
+    private val waiting = java.util.concurrent.CopyOnWriteArrayList<(CoriolisPush.Outcome) -> Unit>()
     @Volatile private var inRange = false
     @Volatile private var baseNetwork: Network? = null
+    @Volatile private var changedHere = true
     private var visible = 0
     private val listeners = LinkedHashSet<() -> Unit>()
     private val debounced = Runnable { auto() }
@@ -74,7 +76,7 @@ object CoriolisSync {
         init(c)
         val p = prefs()
         return Status(p.getBoolean(K_ON, false), p.getBoolean(K_AUTO, true), running.get(), inRange,
-            p.getLong(K_LAST_OK, 0L), p.getString(K_RESULT, null), p.getBoolean(K_RESULT_OK, true), p.getBoolean(K_WAITING, false),
+            p.getLong(K_LAST_OK, 0L), p.getString(K_RESULT, null), p.getBoolean(K_RESULT_OK, true),
             p.getString(K_FW, null), p.getBoolean(K_SEND_PRIVATE, false))
     }
 
@@ -85,6 +87,7 @@ object CoriolisSync {
     fun turnOn(c: Context) {
         init(c)
         prefs().edit().putBoolean(K_ON, true).apply()
+        changedHere = true
         notifyListeners()
         schedulePeriodic()
         auto()
@@ -93,16 +96,22 @@ object CoriolisSync {
     fun turnOff(c: Context) {
         init(c)
         main.removeCallbacks(debounced); main.removeCallbacks(periodic)
-        prefs().edit().putBoolean(K_ON, false).remove(K_LAST_OK).remove(K_RESULT).remove(K_RESULT_OK).remove(K_WAITING).remove(K_FW).apply()
+        prefs().edit().putBoolean(K_ON, false).remove(K_LAST_OK).remove(K_RESULT).remove(K_RESULT_OK).remove(K_FW)
+            .remove(K_LAST_VER).remove(K_LAST_HASH).apply()
         notifyListeners()
     }
 
     fun setAuto(on: Boolean) { prefs().edit().putBoolean(K_AUTO, on).apply(); notifyListeners(); if (on) auto() }
 
-    fun setSendUsedPrivate(on: Boolean) { prefs().edit().putBoolean(K_SEND_PRIVATE, on).apply(); notifyListeners(); auto() }
+    fun setSendUsedPrivate(on: Boolean) {
+        prefs().edit().putBoolean(K_SEND_PRIVATE, on).apply()
+        changedHere = true
+        notifyListeners(); auto()
+    }
 
     fun onLocalChange() {
-        if (!isOn() || !prefs().getBoolean(K_AUTO, true) || Thread.currentThread() === syncThread) return
+        changedHere = true
+        if (!isOn() || !prefs().getBoolean(K_AUTO, true)) return
         main.removeCallbacks(debounced)
         main.postDelayed(debounced, DEBOUNCE_MS)
     }
@@ -122,36 +131,38 @@ object CoriolisSync {
 
     private fun auto() {
         if (!isOn() || !prefs().getBoolean(K_AUTO, true)) return
-        start(SharedFileSync.Options(deviceId(), lastSyncAt(), automatic = true), quietWhenAway = true, done = null)
+        start(quietWhenAway = true, done = null)
     }
 
-    fun syncNow(c: Context, allowDeletions: Int = 0, done: (SharedFileSync.Outcome) -> Unit) {
+    fun sendNow(c: Context, done: (CoriolisPush.Outcome) -> Unit) {
         init(c)
         main.removeCallbacks(debounced)
-        start(SharedFileSync.Options(deviceId(), lastSyncAt(), allowDeletions = allowDeletions), quietWhenAway = false, done = done)
+        start(quietWhenAway = false, done = done)
     }
 
-    private fun start(opts: SharedFileSync.Options, quietWhenAway: Boolean, done: ((SharedFileSync.Outcome) -> Unit)?) {
-        if (!running.compareAndSet(false, true)) { if (done == null) again.set(true); return }
+    private fun start(quietWhenAway: Boolean, done: ((CoriolisPush.Outcome) -> Unit)?) {
+        if (done != null) waiting += done
+        if (!quietWhenAway) loud.set(true)
+        if (!running.compareAndSet(false, true)) { again.set(true); return }
         notifyListeners()
         io.execute {
-            var o: SharedFileSync.Outcome? = null
+            var o: CoriolisPush.Outcome? = null
             try {
                 do {
                     again.set(false)
-                    o = runOnce(opts, quietWhenAway)
-                } while (again.get() && done == null && isOn())
+                    o = runOnce(quietWhenAway = !loud.getAndSet(false))
+                } while (again.get() && (isOn() || waiting.isNotEmpty()))
             } finally {
                 running.set(false)
                 notifyListeners()
             }
             val out = o
-            if (done != null && out != null) main.post { done(out) }
+            val callbacks = waiting.toList().also { waiting.removeAll(it) }
+            if (out != null && callbacks.isNotEmpty()) main.post { callbacks.forEach { it(out) } }
         }
     }
 
     private fun deviceId() = prefs().getString(K_DEVICE, null) ?: "unknown"
-    private fun lastSyncAt() = prefs().getLong(K_LAST_OK, 0L)
 
     private fun findBase(): Pair<Network, BaseHttp>? {
         val cm = app.getSystemService(ConnectivityManager::class.java)
@@ -167,44 +178,44 @@ object CoriolisSync {
         return null
     }
 
-    private fun runOnce(opts: SharedFileSync.Options, quietWhenAway: Boolean): SharedFileSync.Outcome {
-        syncThread = Thread.currentThread()
-        prefs().edit().putLong(K_LAST_ATTEMPT, System.currentTimeMillis()).apply()
-        try {
-            val found = findBase()
-            if (found == null) {
-                val was = inRange
-                inRange = false; baseNetwork = null
-                val o = SharedFileSync.Outcome.Failed("No Coriolis base station in range. Join its Wi-Fi (WindStation) and try again.")
-                if (!quietWhenAway) record(o) else if (was) notifyListeners()
-                return o
-            }
-            baseNetwork = found.first; inRange = true
-            val store = Stores.get(app)
-            val fw = runCatching { CoriolisBase.info(found.second).fw }.getOrNull()
-            if (fw != null) prefs().edit().putString(K_FW, fw).apply()
-            val o = try {
-                CoriolisBaseSync.run(store, found.second, opts, sendUsedPrivate = prefs().getBoolean(K_SEND_PRIVATE, false))
-            } catch (e: Exception) {
-                SharedFileSync.Outcome.Failed("The sync didn't finish: ${e.message ?: e.javaClass.simpleName}")
-            }
-            record(o)
-            return o
-        } finally {
-            syncThread = null
-        }
+    private fun last(): CoriolisPush.Last? {
+        val p = prefs()
+        val h = p.getString(K_LAST_HASH, null) ?: return null
+        return CoriolisPush.Last(p.getLong(K_LAST_VER, -1L), h)
     }
 
-    private fun record(o: SharedFileSync.Outcome) {
-        val e = prefs().edit()
-        when (o) {
-            is SharedFileSync.Outcome.Done -> e.putLong(K_LAST_OK, System.currentTimeMillis()).putString(K_RESULT, o.text.substringBefore('\n'))
-                .putBoolean(K_RESULT_OK, true).putBoolean(K_WAITING, false)
-            is SharedFileSync.Outcome.NeedsConfirmation -> e.putString(K_RESULT, "Waiting for you: the base station would remove ${o.count} record(s) here. Tap Sync now to see what.")
-                .putBoolean(K_RESULT_OK, false).putBoolean(K_WAITING, true)
-            is SharedFileSync.Outcome.FileEmptied -> e.putString(K_RESULT, o.text).putBoolean(K_RESULT_OK, false)
-            is SharedFileSync.Outcome.Failed -> e.putString(K_RESULT, o.text).putBoolean(K_RESULT_OK, false)
+    private fun runOnce(quietWhenAway: Boolean): CoriolisPush.Outcome {
+        prefs().edit().putLong(K_LAST_ATTEMPT, System.currentTimeMillis()).apply()
+        val found = findBase()
+        if (found == null) {
+            val was = inRange
+            inRange = false; baseNetwork = null
+            val o = CoriolisPush.Outcome.Failed("No Coriolis base station in range. Join its Wi-Fi (WindStation) and try again.")
+            if (!quietWhenAway) record(o) else if (was) notifyListeners()
+            return o
         }
+        baseNetwork = found.first; inRange = true
+        val unchanged = !changedHere
+        changedHere = false
+        val o = try {
+            CoriolisPush.run(Stores.get(app), found.second, deviceId(), prefs().getBoolean(K_SEND_PRIVATE, false), last(), unchanged)
+        } catch (e: Exception) {
+            CoriolisPush.Outcome.Failed("Sending didn't finish: ${e.message ?: e.javaClass.simpleName}")
+        }
+        if (!o.ok) changedHere = true
+        record(o)
+        return o
+    }
+
+    private fun record(o: CoriolisPush.Outcome) {
+        val e = prefs().edit()
+        val last = when (o) { is CoriolisPush.Outcome.Sent -> o.last; is CoriolisPush.Outcome.UpToDate -> o.last; else -> null }
+        if (last != null) {
+            e.putLong(K_LAST_OK, System.currentTimeMillis()).putBoolean(K_RESULT_OK, true)
+                .putLong(K_LAST_VER, last.ver).putString(K_LAST_HASH, last.hash)
+            o.text.substringAfter("\nBase station firmware ", "").removeSuffix(".").ifEmpty { null }?.let { e.putString(K_FW, it) }
+        } else e.putBoolean(K_RESULT_OK, false)
+        e.putString(K_RESULT, o.text.substringBefore('\n'))
         e.apply()
         notifyListeners()
     }
@@ -216,7 +227,8 @@ object CoriolisSync {
     private const val K_LAST_ATTEMPT = "lastAttemptAt"
     private const val K_RESULT = "lastResult"
     private const val K_RESULT_OK = "lastOk"
-    private const val K_WAITING = "waiting"
     private const val K_FW = "firmware"
     private const val K_SEND_PRIVATE = "sendUsedPrivate"
+    private const val K_LAST_VER = "lastVer"
+    private const val K_LAST_HASH = "lastHash"
 }

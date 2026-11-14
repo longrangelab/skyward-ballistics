@@ -11,7 +11,10 @@ import com.longrange.dragcurve.model.Libraries
 import com.longrange.dragcurve.model.LibraryKind
 import com.longrange.dragcurve.store.JsonProfileStore
 import com.longrange.dragcurve.store.SafetySnapshots
+import com.longrange.dragcurve.sync.BaseHttp
+import com.longrange.dragcurve.sync.CoriolisPush
 import com.longrange.dragcurve.sync.LocalFileAccess
+import com.longrange.dragcurve.sync.UrlConnectionBaseHttp
 import com.longrange.dragcurve.sync.SharedFileSync
 import java.io.File
 import java.util.Properties
@@ -122,6 +125,18 @@ class DesktopData(val baseDir: File, clock: () -> Long = { System.currentTimeMil
         return o
     }
 
+    val coriolis = CoriolisSettings(File(baseDir, "coriolis.properties"))
+
+    fun sendToBase(http: BaseHttp = UrlConnectionBaseHttp()): CoriolisPush.Outcome {
+        val o = try {
+            CoriolisPush.run(store, http, sharedSync.deviceId, coriolis.sendUsedPrivate, coriolis.last)
+        } catch (e: Exception) {
+            CoriolisPush.Outcome.Failed("Sending didn't finish: ${e.message ?: e.javaClass.simpleName}")
+        }
+        coriolis.record(o)
+        return o
+    }
+
     fun safetyCopies(): List<SafetySnapshots.Info> = runCatching { snapshots.list() }.getOrDefault(emptyList())
 
     fun restoreSafetyCopy(id: String) {
@@ -206,6 +221,36 @@ class SharedSyncSettings(private val file: File) {
         runCatching {
             file.absoluteFile.parentFile?.mkdirs()
             DesktopData.writeAtomic(file, java.io.StringWriter().also { w -> p.store(w, "Skyward Ballistics: shared sync file") }.toString())
+        }
+    }
+}
+
+class CoriolisSettings(private val file: File) {
+    private val p = Properties().also { pr -> runCatching { if (file.exists()) file.inputStream().use { pr.load(it) } } }
+
+    val lastSentAt: Long get() = p.getProperty("lastSentAt")?.toLongOrNull() ?: 0L
+    val lastResult: String? get() = p.getProperty("lastResult")
+    val lastOk: Boolean get() = p.getProperty("lastOk") != "false"
+    var sendUsedPrivate: Boolean
+        get() = p.getProperty("sendUsedPrivate") == "true"
+        set(v) { p.setProperty("sendUsedPrivate", v.toString()); save() }
+    val last: CoriolisPush.Last?
+        get() = p.getProperty("lastHash")?.let { CoriolisPush.Last(p.getProperty("lastVer")?.toLongOrNull() ?: -1L, it) }
+
+    fun record(o: CoriolisPush.Outcome) {
+        val last = when (o) { is CoriolisPush.Outcome.Sent -> o.last; is CoriolisPush.Outcome.UpToDate -> o.last; else -> null }
+        if (last != null) {
+            p.setProperty("lastSentAt", System.currentTimeMillis().toString()); p.setProperty("lastOk", "true")
+            p.setProperty("lastVer", last.ver.toString()); p.setProperty("lastHash", last.hash)
+        } else p.setProperty("lastOk", "false")
+        p.setProperty("lastResult", o.text.substringBefore('\n'))
+        save()
+    }
+
+    @Synchronized private fun save() {
+        runCatching {
+            file.absoluteFile.parentFile?.mkdirs()
+            DesktopData.writeAtomic(file, java.io.StringWriter().also { w -> p.store(w, "Skyward Ballistics: Coriolis base station") }.toString())
         }
     }
 }

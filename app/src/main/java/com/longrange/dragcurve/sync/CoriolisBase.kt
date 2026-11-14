@@ -216,146 +216,98 @@ object BaseTrim {
         }
         return best
     }
-
-    fun libraryIds(text: String): Set<String> {
-        val o = runCatching { JSONObject(text) }.getOrNull() ?: return emptySet()
-        return (objects(o.optJSONArray("bullets")).filter { it.optString("source", "user") == "library" } +
-            objects(o.optJSONArray("deleted")).filter { it.optString("kind") == "library" }).map { it.optString("id") }.toSet()
-    }
 }
 
-class CoriolisBaseFile(
-    private val http: BaseHttp,
-    private val onDownload: (String) -> Unit = {},
-    private val sendUsedPrivate: Boolean = false,
-) : RemoteFile {
-    var info: BaseInfo? = null
-        private set
-    var leftOut: Int = 0
-        private set
-    var heldBackBullets: Int = 0
-        private set
-    var heldBackLoads: Int = 0
-        private set
-    var uploaded: Boolean = false
-        private set
-    private var downloaded: String? = null
-    val downloadedFile: Boolean get() = downloaded != null
+object CoriolisPush {
+    data class Last(val ver: Long, val hash: String)
 
-    private fun readInfo(): BaseInfo {
-        val i = CoriolisBase.info(http)
-        i.problem()?.let { throw BaseStationException(it) }
-        info = i
-        return i
+    sealed class Outcome(val text: String) {
+        val ok: Boolean get() = this !is Failed
+        class Sent(text: String, val last: Last) : Outcome(text)
+        class UpToDate(text: String, val last: Last) : Outcome(text)
+        class Failed(text: String) : Outcome(text)
     }
 
-    override fun list(): List<RemoteMeta> {
-        val i = readInfo()
-        return if (i.bytes <= 0) emptyList() else listOf(RemoteMeta(CoriolisBase.ID, i.ver.toString()))
+    fun run(store: ProfileStore, http: BaseHttp, deviceId: String, sendUsedPrivate: Boolean = false,
+            last: Last? = null, localUnchanged: Boolean = false): Outcome = try {
+        send(store, http, deviceId, sendUsedPrivate, last, localUnchanged)
+    } catch (e: IOException) {
+        Outcome.Failed(e.message ?: e.javaClass.simpleName)
+    } catch (e: org.json.JSONException) {
+        Outcome.Failed("The base station answered with something that isn't gear information.")
     }
 
-    override fun meta(id: String): RemoteMeta? {
-        val i = readInfo()
-        return if (i.bytes <= 0) null else RemoteMeta(CoriolisBase.ID, i.ver.toString())
-    }
+    private fun send(store: ProfileStore, http: BaseHttp, deviceId: String, sendUsedPrivate: Boolean,
+                     last: Last?, localUnchanged: Boolean): Outcome {
+        var info = CoriolisBase.info(http)
+        info.problem()?.let { return Outcome.Failed(it) }
+        if (localUnchanged && last != null && info.bytes > 0 && last.ver == info.ver)
+            return Outcome.UpToDate(upToDateText(null, info), last)
 
-    override fun download(id: String): String {
-        val r = http.request("GET", "/gear", emptyMap(), null)
-        if (r.code == 204) throw BaseStationException("The base station's gear file went away while syncing. It will be tried again.")
-        if (r.code != 200) throw BaseStationException("The base station couldn't send its gear file (${r.code}).")
-        val text = try { CoriolisBase.decode(r.body) } catch (e: IOException) {
-            throw BaseStationException("The base station's gear file is damaged (${e.message}). Open the Coriolis page on a phone to repair it.")
+        val fit = BaseTrim.fit(JSONObject(SyncFile.build(store, deviceId)), info.max, sendUsedPrivate)
+        val hash = hash(fit.json)
+        if (info.bytes > 0) {
+            if (last != null && last.ver == info.ver && last.hash == hash) return Outcome.UpToDate(upToDateText(fit, info), last)
+            if (sameAsBase(http, fit)) return Outcome.UpToDate(upToDateText(fit, info), Last(info.ver, hash))
         }
-        downloaded = text
-        onDownload(text)
-        return text
-    }
-
-    override fun create(content: String): RemoteMeta = upload(content)
-
-    override fun update(id: String, content: String): RemoteMeta = upload(content)
-
-    override fun delete(id: String) {}
-
-    private fun upload(content: String): RemoteMeta {
-        val i = info ?: readInfo()
-        val fit = BaseTrim.fit(JSONObject(content), i.max, sendUsedPrivate, downloaded?.let { BaseTrim.libraryIds(it) } ?: emptySet())
-        leftOut = fit.leftOut
-        heldBackBullets = fit.heldBackBullets
-        heldBackLoads = fit.heldBackLoads
-        downloaded?.let { d ->
-            val same = runCatching { SyncFile.parse(fit.text).content == SyncFile.parse(d).content }.getOrDefault(false)
-            if (same) return RemoteMeta(CoriolisBase.ID, i.ver.toString())
-        }
-        if (fit.gz.size > i.max - BaseTrim.MARGIN_BYTES) throw BaseStationException(
+        if (fit.gz.size > info.max - BaseTrim.MARGIN_BYTES) return Outcome.Failed(
             "Your gear is too big for the base station even without the bullet library " +
-                "(${(fit.gz.size + 1023) / 1024} KB, limit ${i.max / 1024} KB).")
+                "(${(fit.gz.size + 1023) / 1024} KB, limit ${info.max / 1024} KB).")
         val (type, body) = CoriolisBase.multipart(fit.gz)
-        val r = http.request("POST", "/gear?base=${i.ver}&gz=1", mapOf("Content-Type" to type), body)
-        val j = runCatching { JSONObject(r.text()) }.getOrNull()
-        if (r.code == 200 && j?.optBoolean("ok", false) == true) {
-            val v = j.optLong("ver", i.ver + 1)
-            info = i.copy(ver = v, bytes = fit.gz.size.toLong(), gz = true)
-            uploaded = true
-            return RemoteMeta(CoriolisBase.ID, v.toString())
-        }
-        throw BaseStationException(when (j?.optString("err") ?: "") {
-            "conflict" -> "Another phone saved gear to the base station at the same moment. It will be tried again."
-            "too_big" -> "The base station refused the gear file as too big (limit ${i.max / 1024} KB)."
-            "flash_full" -> "The base station's storage is full."
-            "fs" -> "The base station's storage isn't working. Restart the base station."
-            else -> "The base station couldn't save the gear file (${r.code})."
-        })
-    }
-}
-
-object CoriolisBaseSync {
-    fun run(store: ProfileStore, http: BaseHttp, o: SharedFileSync.Options, sendUsedPrivate: Boolean = false): SharedFileSync.Outcome {
-        val before = SyncContent.of(store)
-        val here = before.rifles.size + before.loads.size + before.bullets.size + before.cards.size + before.shots.size
-        val limit = o.allowDeletions ?: if (o.automatic) SharedFileSync.autoDeletionLimit(here) else 0
-        val gate: (String) -> Unit = { text ->
-            val parsed = try { SyncFile.parse(text) } catch (e: IllegalArgumentException) { null }
-            if (parsed != null) {
-                val r = SharedFileSync.removals(store, parsed)
-                if (r.count > limit) throw DeletionsNeedConfirmation(r.count, r.lines)
+        for (attempt in 1..3) {
+            val r = http.request("POST", "/gear?base=${info.ver}&gz=1", mapOf("Content-Type" to type), body)
+            val j = runCatching { JSONObject(r.text()) }.getOrNull()
+            if (r.code == 200 && j?.optBoolean("ok", false) == true) {
+                val v = j.optLong("ver", info.ver + 1)
+                return Outcome.Sent(sentText(fit, info), Last(v, hash))
             }
+            val err = j?.optString("err") ?: ""
+            if (err == "conflict" && attempt < 3) { info = CoriolisBase.info(http); continue }
+            return Outcome.Failed(when (err) {
+                "conflict" -> "The base station kept changing while sending (another phone saving at the same time). It will be tried again."
+                "too_big" -> "The base station refused the gear file as too big (limit ${info.max / 1024} KB)."
+                "flash_full" -> "The base station's storage is full."
+                "fs" -> "The base station's storage isn't working. Restart the base station."
+                else -> "The base station couldn't save the gear file (${r.code})."
+            })
         }
-        val remote = CoriolisBaseFile(http, gate, sendUsedPrivate)
-        val result = try {
-            SyncEngine(o.deviceId).sync(store, remote, o.lastSyncAt)
-        } catch (e: DeletionsNeedConfirmation) {
-            return SharedFileSync.Outcome.NeedsConfirmation(e.count, e.lines,
-                "The base station says ${e.count} record(s) here were deleted on another device:\n" + e.lines.joinToString("\n") { "•  $it" } +
-                    "\n\nNothing has been changed yet.")
-        }
-        if (!result.ok) return SharedFileSync.Outcome.Failed(explain(result.error ?: "The sync didn't finish."))
-        if (!result.uploaded && remote.downloadedFile) {
-            try {
-                remote.update(CoriolisBase.ID, SyncFile.build(store, o.deviceId))
-            } catch (e: IOException) {
-                return SharedFileSync.Outcome.Failed(explain(e.message ?: "The sync didn't finish."))
-            }
-        }
-        val after = SyncContent.of(store)
-        val ch = SharedFileSync.changes(before, after)
-        return SharedFileSync.Outcome.Done(result, ch, summary(result, ch, remote))
+        return Outcome.Failed("The base station couldn't save the gear file.")
     }
 
-    private fun explain(error: String): String =
-        error.replace("The sync file in Google Drive can't be used: ", "The base station's gear file can't be used: ")
-            .replace("The sync file kept changing while syncing (another device syncing at the same time).", "The base station's gear kept changing while syncing (another phone saving at the same time).")
-
-    fun summary(r: SyncResult, c: SharedFileSync.Changes, remote: CoriolisBaseFile): String = buildString {
-        append("Added ${c.added}, updated ${c.updated}, removed ${c.removed}")
-        if (remote.uploaded) append("; sent this device's gear to the base station") else append("; the base station was already up to date")
-        append('.')
-        if (c.libAdded + c.libUpdated + c.libRemoved > 0)
-            append(" Bullet library: ${c.libAdded} added, ${c.libUpdated} updated, ${c.libRemoved} removed.")
-        if (remote.uploaded && remote.leftOut > 0) append(" ${remote.leftOut} library bullet(s) didn't fit on the base station and stay on this device.")
-        if (remote.heldBackLoads > 0) append(" ${remote.heldBackLoads} ammo use bullets from your own bullet libraries, so they stay on this device.")
-        if (r.conflicts > 0) append(" ${r.conflicts} record(s) had been changed on two devices; the newest change was kept.")
-        remote.info?.fw?.let { append("\nBase station firmware $it.") }
-        r.messages.take(3).forEach { append("\n• ").append(it) }
+    private fun sameAsBase(http: BaseHttp, fit: BaseTrim.Result): Boolean {
+        val r = http.request("GET", "/gear", emptyMap(), null)
+        if (r.code != 200) return false
+        return runCatching {
+            SyncFile.parse(CoriolisBase.decode(r.body)).content == SyncFile.parse(fit.text).content
+        }.getOrDefault(false)
     }
+
+    fun hash(o: JSONObject): String {
+        val c = JSONObject(o.toString())
+        listOf("exportedAt", "deviceId").forEach { c.remove(it) }
+        return CoriolisBase.sha256(c.toString())
+    }
+
+    private fun count(o: JSONObject, key: String) = o.optJSONArray(key)?.length() ?: 0
+
+    private fun gearLine(fit: BaseTrim.Result): String {
+        val bullets = fit.json.optJSONArray("bullets")
+        val lib = (0 until (bullets?.length() ?: 0)).count { bullets!!.optJSONObject(it)?.optString("source") == "library" }
+        val own = count(fit.json, "bullets") - lib
+        return "${count(fit.json, "rifles")} firearm(s), ${count(fit.json, "loads")} ammo, $own of your bullets, " +
+            "$lib component library bullet(s)"
+    }
+
+    private fun notes(fit: BaseTrim.Result?, info: BaseInfo): String = buildString {
+        if (fit != null) {
+            if (fit.heldBackLoads > 0) append(" ${fit.heldBackLoads} ammo use bullets from your own bullet libraries, so they stay on this device.")
+            if (fit.leftOut > 0) append(" ${fit.leftOut} component library bullet(s) didn't fit on the base station.")
+        }
+        info.fw?.let { append("\nBase station firmware $it.") }
+    }
+
+    private fun sentText(fit: BaseTrim.Result, info: BaseInfo) = "Sent to the base station: ${gearLine(fit)}." + notes(fit, info)
+
+    private fun upToDateText(fit: BaseTrim.Result?, info: BaseInfo) =
+        "The base station already has this device's gear" + (fit?.let { ": ${gearLine(it)}" } ?: "") + "." + notes(fit, info)
 }
