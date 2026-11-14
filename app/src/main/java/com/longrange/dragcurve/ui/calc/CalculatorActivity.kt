@@ -137,12 +137,17 @@ class CalculatorActivity : CalcActivity() {
     private fun launchShowing() = findViewById<View>(R.id.launchOverlay)?.visibility == View.VISIBLE
 
     private fun startupNotices() {
+        ComponentLibraryUi.checkIfDue(this)
         if (noticesDone) return
         if (launchShowing()) { ui.postDelayed({ if (!isFinishing && !isDestroyed) startupNotices() }, 400); return }
         noticesDone = true
         when {
             !uiPrefs().getBoolean(K_DISCLAIMER_SEEN, false) -> showDisclaimer(this) {
                 uiPrefs().edit().putBoolean(K_DISCLAIMER_SEEN, true).apply()
+                noticesDone = false
+                if (!isFinishing && !isDestroyed) startupNotices()
+            }
+            ComponentLibraryUi.offerPending(this) -> ComponentLibraryUi.offer(this) {
                 noticesDone = false
                 if (!isFinishing && !isDestroyed) startupNotices()
             }
@@ -330,7 +335,7 @@ class CalculatorActivity : CalcActivity() {
         form.header("Firearm and ammo")
         form.group {
             nav("Firearm", sel.rifle?.name ?: "Tap to add a firearm") { pickRifle() }
-            val loadSub = sel.load?.let { l -> listOfNotNull(LoadFlags.text(l), BcSelection.summary(l, sel.bullet)).joinToString(" · ") }
+            val loadSub = sel.load?.let { l -> listOfNotNull(LoadFlags.text(l, sel.bullet), BcSelection.summary(l, sel.bullet)).joinToString(" · ") }
             nav("Ammo", sel.load?.name ?: if (sel.rifle == null) "Add a firearm first" else "Tap to add ammo", sub = loadSub) { pickAmmo() }
         }
 

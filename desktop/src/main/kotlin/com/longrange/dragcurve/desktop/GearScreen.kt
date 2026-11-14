@@ -50,6 +50,7 @@ import com.longrange.dragcurve.model.TwistDirection
 import com.longrange.dragcurve.store.newId
 import com.longrange.dragcurve.ui.calc.BcSelection
 import com.longrange.dragcurve.ui.calc.BulletBook
+import com.longrange.dragcurve.exchange.BulletGroups
 import com.longrange.dragcurve.ui.calc.BulletSearch
 import com.longrange.dragcurve.ui.calc.DragSource
 import com.longrange.dragcurve.ui.calc.LoadFlags
@@ -234,7 +235,7 @@ private fun AmmoTab(st: AppState) {
                 if (filter == null) rifles.firstOrNull { it.id == l.rifleId }?.name else null,
                 BcSelection.summary(l, st.store.bullet(l.bulletId)),
                 Num.trim(Fmt(st.settings).disp(Quantity.VELOCITY, l.muzzleVelocityFps), 0) + " " + Fmt(st.settings).label(Quantity.VELOCITY),
-                LoadFlags.text(l),
+                LoadFlags.text(l, st.store.bullet(l.bulletId)),
             ).joinToString(" · ")
         },
         current?.id, { current = it }, "Add ammo",
@@ -317,6 +318,17 @@ private fun AmmoEditor(st: AppState, initial: Load, rifles: List<Rifle>, onSaved
             else {
                 Text(BulletSearch.title(b), fontWeight = FontWeight.SemiBold)
                 Note(BulletSearch.sourceLabel(b) + " · " + BulletSearch.subtitle(b))
+                val newer = b.replacedBy.takeIf { it.isNotEmpty() }?.let { store.bullet(it) }
+                if (newer != null) {
+                    Text("Newer data for this bullet. The library was updated: " + BulletGroups.change(b, newer) +
+                        ". This ammo keeps the data it was set up with until you switch. Check your dope after switching.",
+                        color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
+                    OutlinedButton(onClick = {
+                        bullet = newer
+                        l = l.copy(bulletId = newer.id)
+                        src = src?.takeIf { it in BcSelection.choices(newer) } ?: BcSelection.default(newer)
+                    }) { Text("Use the newer data") }
+                }
             }
             OutlinedButton(onClick = { picking = true }) { Text(if (b == null) "Choose bullet…" else "Change bullet…") }
             if (b != null) {
@@ -366,6 +378,7 @@ private fun AmmoEditor(st: AppState, initial: Load, rifles: List<Rifle>, onSaved
             }
             val toSave = BcSelection.apply(l.copy(name = l.name.trim(), bulletId = b.id, id = l.id.ifEmpty { newId() }, zeroConfirmed = true), b, s, customModel, custom)
             store.saveLoad(toSave)
+            if (initial.bulletId != toSave.bulletId) store.dropReplacedLibraryBullet(initial.bulletId)
             st.changed()
             onSaved(store.loads(null).first { it.id == toSave.id })
         }, onDelete = {
@@ -386,9 +399,9 @@ private fun AmmoEditor(st: AppState, initial: Load, rifles: List<Rifle>, onSaved
 
 @Composable
 fun BulletPicker(st: AppState, onPick: (Bullet) -> Unit, onClose: () -> Unit) {
-    val all = remember(st.rev) { BulletBook.ordered(st.store.userBullets() + st.store.libraryBullets()) }
+    val all = remember(st.rev) { BulletGroups.group(BulletBook.ordered(st.store.userBullets() + st.store.libraryBullets())) }
     var q by remember { mutableStateOf("") }
-    val shown = remember(all, q) { all.filter { BulletSearch.matches(it, q) } }
+    val shown = remember(all, q) { all.filter { g -> g.members.any { BulletSearch.matches(it, q) } } }
     AlertDialog(
         onDismissRequest = onClose,
         title = { Text("Choose a bullet") },
@@ -398,10 +411,14 @@ fun BulletPicker(st: AppState, onPick: (Bullet) -> Unit, onClose: () -> Unit) {
                 if (all.isEmpty()) Note("No bullets yet. Add your own under My gear > My bullets, or import a bullet library under Bullet library.")
                 else Note("${shown.size} of ${all.size} bullets")
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    items(shown.take(500), key = { it.id }) { b ->
+                    items(shown.take(500), key = { it.key }) { g ->
+                        val b = g.default
                         Column(Modifier.fillMaxWidth().clickable { onPick(b) }.padding(vertical = 6.dp, horizontal = 4.dp)) {
                             Text(BulletSearch.title(b), fontWeight = FontWeight.SemiBold)
                             Note(BulletSearch.sourceLabel(b) + " · " + BulletSearch.subtitle(b))
+                            g.others.forEach { o ->
+                                TextButton(onClick = { onPick(o) }) { Text("Or from " + BulletSearch.sourceLabel(o) + ": " + BulletGroups.dataKind(o)) }
+                            }
                         }
                     }
                 }

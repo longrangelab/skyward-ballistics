@@ -58,10 +58,14 @@ data class EpCatalog(
     val primers: List<Entry> = emptyList(),
     val brass: List<Entry> = emptyList(),
 ) {
-    data class Entry(val name: String, val id: String)
+    data class Entry(val name: String, val id: String, val parent: String = "")
+
+    val isEmpty: Boolean get() = cartridges.isEmpty() && bullets.isEmpty() && powders.isEmpty() && primers.isEmpty() && brass.isEmpty()
 
     fun toJson(): String {
-        fun arr(l: List<Entry>) = JSONArray().also { a -> l.forEach { a.put(JSONObject().put("name", it.name).put("id", it.id)) } }
+        fun arr(l: List<Entry>) = JSONArray().also { a ->
+            l.forEach { a.put(JSONObject().put("name", it.name).put("id", it.id).apply { if (it.parent.isNotEmpty()) put("parent", it.parent) }) }
+        }
         return JSONObject().put("cartridges", arr(cartridges)).put("bullets", arr(bullets)).put("powders", arr(powders))
             .put("primers", arr(primers)).put("brass", arr(brass)).toString()
     }
@@ -78,7 +82,7 @@ data class EpCatalog(
                 val o = JSONObject(text)
                 fun list(k: String): List<Entry> {
                     val a = o.optJSONArray(k) ?: return emptyList()
-                    return (0 until a.length()).mapNotNull { i -> a.optJSONObject(i)?.let { Entry(it.optString("name"), it.optString("id")) } }
+                    return (0 until a.length()).mapNotNull { i -> a.optJSONObject(i)?.let { Entry(it.optString("name"), it.optString("id"), it.optString("parent")) } }
                         .filter { it.name.isNotBlank() && it.id.isNotBlank() }
                 }
                 EpCatalog(list("cartridges"), list("bullets"), list("powders"), list("primers"), list("brass"))

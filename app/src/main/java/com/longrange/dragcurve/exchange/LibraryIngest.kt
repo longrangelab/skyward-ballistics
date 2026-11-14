@@ -107,24 +107,33 @@ object LibraryIngest {
         return u
     }
 
-    fun download(url: String): ByteArray {
+    fun download(url: String): ByteArray = fetch(url).bytes ?: throw IOException("The server sent nothing.")
+
+    class Fetched(val bytes: ByteArray?, val etag: String?, val lastModified: String?)
+
+    fun fetch(url: String, etag: String? = null, lastModified: String? = null): Fetched {
         var current = checkUrl(url)
         repeat(5) {
             val c = URL(current).openConnection() as HttpURLConnection
             try {
                 c.connectTimeout = 15_000; c.readTimeout = 30_000
                 c.instanceFollowRedirects = false
+                c.useCaches = false
                 c.requestMethod = "GET"
                 c.setRequestProperty("User-Agent", "SkywardBallistics")
                 c.setRequestProperty("Accept", "*/*")
+                etag?.takeIf { it.isNotBlank() }?.let { c.setRequestProperty("If-None-Match", it) }
+                lastModified?.takeIf { it.isNotBlank() }?.let { c.setRequestProperty("If-Modified-Since", it) }
                 val code = c.responseCode
+                if (code == 304) return Fetched(null, etag, lastModified)
                 if (code in 300..399) {
                     val next = c.getHeaderField("Location") ?: throw IOException("The server redirected without saying where to.")
                     current = try { checkUrl(URL(URL(current), next).toString()) } catch (e: IllegalArgumentException) { throw IOException("The download was redirected to an address that is not https.") }
                     return@repeat
                 }
                 if (code != 200) throw IOException("The server answered $code for that address.")
-                return c.inputStream.use { readLimited(it, MAX_BYTES) } ?: throw IOException("That file is larger than ${MAX_BYTES / (1024 * 1024)} MB.")
+                val bytes = c.inputStream.use { readLimited(it, MAX_BYTES) } ?: throw IOException("That file is larger than ${MAX_BYTES / (1024 * 1024)} MB.")
+                return Fetched(bytes, c.getHeaderField("ETag"), c.getHeaderField("Last-Modified"))
             } finally {
                 c.disconnect()
             }

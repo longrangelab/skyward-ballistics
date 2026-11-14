@@ -92,7 +92,7 @@ fun CalculatorScreen(st: AppState) {
                             "MV " + fmt.withUnit(Quantity.VELOCITY, load.muzzleVelocityFps),
                             "zero " + fmt.withUnit(Quantity.DISTANCE, load.zeroRangeYd),
                         ).joinToString(" · "))
-                        LoadFlags.text(load)?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
+                        LoadFlags.text(load, bullet)?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
                     } else if (rifle != null) {
                         OutlinedButton(onClick = { st.screen = Screen.GEAR }) { Text("Add ammo under My gear") }
                     }

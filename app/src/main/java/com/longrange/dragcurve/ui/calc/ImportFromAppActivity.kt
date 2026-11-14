@@ -306,7 +306,8 @@ class ImportFromAppActivity : CalcActivity() {
         if (pickedFirearms.isEmpty() && pickedAmmo.isEmpty()) {
             Toast.makeText(this, "Nothing selected.", Toast.LENGTH_SHORT).show(); return
         }
-        val plan = ImportMerge.build(r, pickedFirearms.toSet(), pickedAmmo.toSet(), store.snapshot(), System.currentTimeMillis()) { CalcActivity.newId(it) }
+        val plan = ImportMerge.build(r, pickedFirearms.toSet(), pickedAmmo.toSet(), store.snapshot(), System.currentTimeMillis(),
+            newId = { CalcActivity.newId(it) }, library = store.libraryBullets())
         val rep = store.merge(plan.libs)
         report = buildString {
             append("Firearms: ${plan.newRifles} new, ${plan.updatedRifles} updated.\n")

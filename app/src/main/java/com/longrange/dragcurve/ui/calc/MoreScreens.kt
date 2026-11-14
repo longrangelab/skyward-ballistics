@@ -85,11 +85,13 @@ class MoreActivity : CalcActivity() {
         form.settings = settings
         form.clear()
         val lib = store.libraryBullets().count { it.collection.isEmpty() }
+        val comp = store.libraryBullets().count { it.collection == com.longrange.dragcurve.exchange.ComponentLibrary.COLLECTION && it.replacedBy.isEmpty() }
         val sync = SyncScheduler.status()
         val folder = BackupFolder.status(this)
         form.addView(View(this).apply { layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(8)) })
         form.group {
-            nav(getString(R.string.calc_libraries), "", sub = "Bullet library ${if (lib == 0) "not imported" else "($lib bullets)"}, profile databases, importing from other apps") {
+            nav(getString(R.string.calc_libraries), "", sub = (if (comp > 0) "Component library ($comp bullets) · " else "") +
+                "bullet library ${if (lib == 0) "not imported" else "($lib bullets)"}, profile databases, importing from other apps") {
                 startActivity(Intent(this@MoreActivity, LibrariesActivity::class.java))
             }
             val shared = com.longrange.dragcurve.sync.SharedSync.status(this@MoreActivity)

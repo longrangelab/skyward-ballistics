@@ -41,7 +41,7 @@ import kotlinx.coroutines.withContext
 @Composable
 fun LibraryScreen(st: AppState) {
     val store = st.store
-    val lib = remember(st.rev) { store.libraryBullets() }
+    val lib = remember(st.rev) { store.libraryBullets().filter { it.replacedBy.isEmpty() } }
     var q by remember { mutableStateOf("") }
     val shown = remember(lib, q) { lib.filter { BulletSearch.matches(it, q) } }
     var current by remember { mutableStateOf<Bullet?>(null) }

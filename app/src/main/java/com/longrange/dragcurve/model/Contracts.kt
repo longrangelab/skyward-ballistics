@@ -64,6 +64,10 @@ interface ProfileStore {
 
     fun saveUserBullet(b: Bullet): Bullet { saveBullet(b); return b }
     fun importBulletLibrary(libs: Libraries): ImportReport { throw UnsupportedOperationException("importBulletLibrary") }
+    fun updateLibraryCollection(collection: String, bullets: List<Bullet>): ImportReport { throw UnsupportedOperationException("updateLibraryCollection") }
+    fun dropReplacedLibraryBullet(id: String): Boolean = false
+    fun componentCatalog(): String? = null
+    fun saveComponentCatalog(json: String?) {}
     fun clearBulletLibrary(): Boolean = false
     fun removeLibraryCollection(collection: String): Boolean = false
     fun applyLibraryTombstones(deleted: List<Tombstone>): Int = 0

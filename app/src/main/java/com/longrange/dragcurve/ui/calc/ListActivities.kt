@@ -1,5 +1,6 @@
 package com.longrange.dragcurve.ui.calc
 
+import android.content.Context
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
@@ -20,6 +21,7 @@ import android.view.Menu
 import android.view.MenuItem
 import com.longrange.dragcurve.R
 import com.longrange.dragcurve.exchange.BrowseKind
+import com.longrange.dragcurve.exchange.BulletGroups
 import com.longrange.dragcurve.model.Bullet
 
 abstract class CalcListActivity : CalcActivity() {
@@ -194,7 +196,7 @@ class LoadsActivity : CalcListActivity() {
         val items = store.loads(rifleId).map { l ->
             val b = store.bullet(l.bulletId)
             val mv = Num.trim(Units.toDisplay(Quantity.VELOCITY, l.muzzleVelocityFps, settings), 0) + " " + Units.label(Quantity.VELOCITY, settings)
-            ProfileItem(l.id, l.name, listOfNotNull(LoadFlags.text(l), BcSelection.summary(l, b), mv.takeIf { !LoadFlags.mvNeeded(l) }).joinToString(" · "),
+            ProfileItem(l.id, l.name, listOfNotNull(LoadFlags.text(l, b), BcSelection.summary(l, b), mv.takeIf { !LoadFlags.mvNeeded(l) }).joinToString(" · "),
                 tag = if (EmpiricalHook.isEmpirical(l.externalRef)) getString(R.string.calc_empirical) else null,
                 selected = l.id == selId && store.selection().first == rifleId)
         }
@@ -214,6 +216,7 @@ class BulletLibraryActivity : CalcListActivity() {
     private var filter = 0
     private lateinit var search: EditText
     private var all: List<Bullet> = emptyList()
+    private var groups: List<BulletGroups.Group> = emptyList()
 
     private val importLib = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) LibraryImport.run(this, uri) { reload() }
@@ -246,14 +249,15 @@ class BulletLibraryActivity : CalcListActivity() {
             startFilter == 2 -> getString(R.string.calc_my_bullets)
             else -> getString(R.string.calc_bullet_library)
         }
-        setupList(title, emptyList(),
+        setupList(title, listOf("Choose the data source…"),
             onClick = { item ->
                 if (pick) {
                     setResult(Activity.RESULT_OK, Intent().putExtra(RESULT_ID, item.id)); finish()
                 } else startActivity(Intent(this, BulletEditActivity::class.java).putExtra(BulletEditActivity.EXTRA_ID, item.id))
-            }, onMenu = { _, _ -> })
+            }, onMenu = { item, _ -> chooseSource(item.id) })
         findViewById<View>(R.id.searchBox).visibility = View.VISIBLE
         search = findViewById(R.id.search)
+        if (savedInstanceState == null) intent.getStringExtra(EXTRA_QUERY)?.let { search.setText(it) }
         search.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
             override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
@@ -313,12 +317,13 @@ class BulletLibraryActivity : CalcListActivity() {
 
     private fun refresh() {
         val q = search.text?.toString().orEmpty()
-        val list = all.filter {
-            (filter == 0 || (filter == 1) == (it.source == "library")) && BulletSearch.matches(it, q)
-        }
-        val items = list.map { b ->
-            ProfileItem(b.id, BulletSearch.title(b), listOfNotNull(b.caliber.takeIf { it.isNotBlank() }, BulletSearch.subtitle(b)).joinToString(" · "),
-                tag = if (unified) BulletSearch.sourceLabel(b) else if (b.source == "library") null else "mine", showMenu = false)
+        val pool = all.filter { filter == 0 || (filter == 1) == (it.source == "library") }
+        groups = BulletGroups.group(pool, BulletSources.preferred(this)).filter { g -> g.members.any { BulletSearch.matches(it, q) } }
+        val items = groups.map { g ->
+            val b = g.default
+            val also = g.others.map { BulletSearch.sourceLabel(it) }.distinct().takeIf { it.isNotEmpty() }?.let { "also in " + it.joinToString(", ") }
+            ProfileItem(b.id, BulletSearch.title(b), listOfNotNull(b.caliber.takeIf { it.isNotBlank() }, BulletSearch.subtitle(b), also).joinToString(" · "),
+                tag = if (unified) BulletSearch.sourceLabel(b) else if (b.source == "library") null else "mine", showMenu = g.others.isNotEmpty())
         }
         when {
             unified && items.isEmpty() && all.isEmpty() -> show(items, getString(R.string.calc_no_bullets_own_bc))
@@ -328,6 +333,19 @@ class BulletLibraryActivity : CalcListActivity() {
                 show(items, getString(R.string.calc_no_library), getString(R.string.calc_import_library)) { importLib.launch(LibraryImport.MIME) }
             else -> show(items, getString(R.string.calc_no_bullets))
         }
+    }
+
+    private fun chooseSource(id: String) {
+        val g = groups.firstOrNull { it.default.id == id } ?: return
+        val labels = g.members.map { "${BulletSearch.sourceLabel(it)}: ${BulletGroups.dataKind(it)}" }
+        MaterialAlertDialogBuilder(this).setTitle(BulletSearch.title(g.default))
+            .setSingleChoiceItems(labels.toTypedArray(), 0) { d, i ->
+                d.dismiss()
+                val b = g.members[i]
+                BulletSources.setPreferred(this, g.key, b.id)
+                if (pick) { setResult(Activity.RESULT_OK, Intent().putExtra(RESULT_ID, b.id)); finish() } else refresh()
+            }
+            .setNegativeButton(android.R.string.cancel, null).show()
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -344,8 +362,19 @@ class BulletLibraryActivity : CalcListActivity() {
         const val EXTRA_PICK = "pick"
         const val EXTRA_FILTER = "filter"
         const val EXTRA_COPY_SOURCE = "copySource"
+        const val EXTRA_QUERY = "query"
         const val EXTRA_UNIFIED = "unified"
         const val RESULT_ID = "bulletId"
         const val RESULT_MANUAL = "manual"
     }
+}
+
+object BulletSources {
+    private const val PREFS = "bullet_sources"
+
+    fun preferred(c: Context): Map<String, String> =
+        c.getSharedPreferences(PREFS, Context.MODE_PRIVATE).all.mapNotNull { (k, v) -> (v as? String)?.let { k to it } }.toMap()
+
+    fun setPreferred(c: Context, key: String, bulletId: String) =
+        c.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(key, bulletId).apply()
 }
