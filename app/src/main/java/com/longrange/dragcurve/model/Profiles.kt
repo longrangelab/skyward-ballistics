@@ -45,6 +45,7 @@ data class Bullet(
     val collection: String = "",
     val provenance: Provenance? = null,
     val externalIds: Map<String, String> = emptyMap(),
+    val replacedBy: String = "",
 )
 
 data class Rifle(

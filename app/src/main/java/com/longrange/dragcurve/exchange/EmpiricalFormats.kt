@@ -236,6 +236,9 @@ class EpMaster private constructor(
     val diameters: Map<String, JSONObject>,
     val manufacturers: Map<String, JSONObject>,
     val grid: DoubleArray,
+    val powders: Map<String, JSONObject> = emptyMap(),
+    val primers: Map<String, JSONObject> = emptyMap(),
+    val brass: Map<String, JSONObject> = emptyMap(),
 ) {
     companion object {
         fun parse(text: String): EpMaster {
@@ -244,7 +247,8 @@ class EpMaster private constructor(
             val g = o.optJSONObject("bulletDragGrid")?.optJSONArray("mach")
             val grid = if (g != null && g.length() > 1) DoubleArray(g.length()) { g.getDouble(it) } else Ep.MACH_GRID
             if (!o.has("bullets")) throw IllegalArgumentException("master-db.json has no bullets table.")
-            return EpMaster(table("bullets"), table("cartridges"), table("diameters"), table("manufacturers"), grid)
+            return EpMaster(table("bullets"), table("cartridges"), table("diameters"), table("manufacturers"), grid,
+                table("powders"), table("primers"), table("brass"))
         }
     }
 }

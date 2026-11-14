@@ -337,9 +337,14 @@ abstract class ImportExportActivity : CalcActivity() {
     }
 
     private fun renderLibraries() {
+        renderComponentLibrary()
+
         form.header("Bullet libraries")
-        form.note("Library bullets are used live by your ammo: the ammo keeps pointing at its library bullet, so a library that some ammo uses can't be removed.")
-        val library = store.libraryBullets()
+        form.note("Each library is kept apart and labelled with where it came from. When the same bullet is in several, " +
+            "the bullet list shows it once with the best data first (your own, then a drag curve, then several BCs, then one BC); press and hold it to choose another source. " +
+            "Ammo keeps the bullet data it was set up with: when a library update changes that bullet, the ammo says newer data is available and you switch when you are ready. " +
+            "A library that some ammo uses can't be removed.")
+        val library = store.libraryBullets().filter { it.replacedBy.isEmpty() && it.collection != com.longrange.dragcurve.exchange.ComponentLibrary.COLLECTION }
         val main = library.filter { it.collection.isEmpty() }
         form.group {
             val imported = main.maxOfOrNull { it.updatedAt }?.takeIf { it > 0 }
@@ -383,6 +388,47 @@ abstract class ImportExportActivity : CalcActivity() {
                 ImportFromAppActivity.open(this@ImportExportActivity)
             }
         }
+    }
+
+    private fun renderComponentLibrary() {
+        val s = ComponentLibraryUi.status(this)
+        val day = SimpleDateFormat("d MMM yyyy", Locale.getDefault())
+        form.header("Component library")
+        form.group {
+            if (!s.installed) {
+                nav("Download the component library", "", sub = "Free from Empirical Precision: about 1,100 bullets with G7 BCs, plus powders, primers, " +
+                    "case makers and cartridge names for reloading recipes. About 1 MB.") {
+                    ComponentLibraryUi.setAutoUpdate(this@ImportExportActivity, true)
+                    ComponentLibraryUi.download(this@ImportExportActivity) { render() }
+                }
+            } else {
+                nav(com.longrange.dragcurve.exchange.ComponentLibrary.TITLE, "${s.bullets}", sub = s.counts +
+                    (if (s.updatedAt > 0) "\nUpdated " + day.format(Date(s.updatedAt)) else "") +
+                    (if (s.checkedAt > 0) " · checked " + day.format(Date(s.checkedAt)) else "") + " · tap to browse the bullets") {
+                    startActivity(Intent(this@ImportExportActivity, BulletLibraryActivity::class.java)
+                        .putExtra(BulletLibraryActivity.EXTRA_FILTER, 1)
+                        .putExtra(BulletLibraryActivity.EXTRA_QUERY, com.longrange.dragcurve.exchange.ComponentLibrary.COLLECTION))
+                }
+                switch("Update automatically", s.autoUpdate, sub = "About once a week, when there is a newer copy. Ammo you have set up never changes without you.") { on ->
+                    ComponentLibraryUi.setAutoUpdate(this@ImportExportActivity, on)
+                }
+                nav("Check for an update now", "", sub = if (s.lastError.isNotEmpty()) "⚠ Last check failed: ${s.lastError}" else null) {
+                    ComponentLibraryUi.download(this@ImportExportActivity) { render() }
+                }
+                nav("Remove the component library", "") {
+                    MaterialAlertDialogBuilder(this@ImportExportActivity).setTitle("Remove the component library?")
+                        .setMessage("Its bullets and the powder, primer, case and cartridge names are removed from this phone. Names already in your recipes stay. " +
+                            "You can download it again later, and a safety copy is kept.")
+                        .setPositiveButton("Remove") { _, _ ->
+                            if (!ComponentLibraryUi.remove(this@ImportExportActivity))
+                                alert("Library in use", "Some ammo uses a bullet from the component library. Change or delete that ammo (or copy the bullet to My bullets and pick the copy) first.")
+                            render()
+                        }
+                        .setNegativeButton(android.R.string.cancel, null).show()
+                }
+            }
+        }
+        form.note(com.longrange.dragcurve.exchange.ComponentLibrary.CREDIT)
     }
 
     private fun renderBackup() {

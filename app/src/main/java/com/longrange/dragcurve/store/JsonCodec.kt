@@ -128,6 +128,7 @@ object JsonCodec {
             .putOpt2("collection", b.collection.ifEmpty { null })
             .putOpt2("provenance", b.provenance?.takeIf { !it.isEmpty }?.let { provenance(it) })
             .putOpt2("externalIds", b.externalIds.takeIf { it.isNotEmpty() }?.let { externalIds(it) })
+            .putOpt2("replacedBy", b.replacedBy.ifEmpty { null })
             .put("notes", b.notes)
             .putStamp(b.updatedAt)
     }
@@ -160,6 +161,7 @@ object JsonCodec {
             collection = o.optS("collection", d.collection),
             provenance = provenance(o.optJSONObject("provenance")),
             externalIds = externalIds(o.optJSONObject("externalIds")),
+            replacedBy = o.optS("replacedBy", d.replacedBy),
         )
     }
 

@@ -32,6 +32,12 @@ Each of these is off until you turn it on or use it.
   folder you pick, and it never changes, moves or deletes anything in your Drive.
 - **Downloading bullet files.** If you enter a web address to download a bullet file, Skyward
   connects only to that address (https only).
+- **Component library.** If you choose to download it (Skyward offers it once on first start, and
+  under More → Libraries), Skyward downloads Empirical Precision's public component list from
+  empiricalprecision.com over https. While "Update automatically" is on, Skyward checks that same
+  address about once a week and downloads it again only when it has changed. These are plain
+  downloads: nothing about you or your data is sent with them. You can turn updates off or
+  remove the library at any time.
 - **Location.** If you tap "Use my location" or "Get" for latitude, Skyward asks for your approximate
   location. It uses it only on your device to fill in latitude and compass declination. It is not
   sent anywhere and is not tracked in the background.

@@ -20,7 +20,14 @@ A ballistic calculator for Android, with a Windows version that shares the same 
 - **Light and dark themes.**
 - **Windows app** with the same calculations, profiles and backup files.
 
-The app ships without a bullet library. Add your own bullets, or import bullet files you have.
+The app ships without a bullet library. On first start it offers to download Empirical
+Precision's free component library (about 1,100 bullets with G7 BCs, some with measured drag
+curves, plus powders, primers, cases and cartridge names for reloading recipes) from Empirical
+Precision's own site, and checks for a newer copy about once a week if you let it. You can also
+add your own bullets or import bullet files you have. Each library is kept apart and labelled
+with where it came from. When the same bullet is in several, Skyward lists it once with the best
+data first, and you choose whose data it uses. Ammo you have set up keeps its bullet data until
+you choose to switch to newer data.
 
 ## Check your shots
 

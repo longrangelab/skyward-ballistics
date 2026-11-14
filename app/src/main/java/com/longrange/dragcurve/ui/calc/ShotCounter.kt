@@ -133,6 +133,8 @@ class ShotCounterActivity : CalcActivity() {
                 quick.addView(MaterialButton(this@ShotCounterActivity).apply {
                     text = "+$n"; setTextSize(TypedValue.COMPLEX_UNIT_SP, 20f)
                     minHeight = dp(64); minimumHeight = dp(64); insetTop = 0; insetBottom = 0
+                    minWidth = 0; minimumWidth = 0; maxLines = 1
+                    setPaddingRelative(dp(4), paddingTop, dp(4), paddingBottom)
                     contentDescription = "Add $n shots"
                     setOnClickListener { add(n, "") }
                 }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { marginStart = dp(4); marginEnd = dp(4) })

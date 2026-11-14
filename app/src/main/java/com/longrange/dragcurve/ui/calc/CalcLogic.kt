@@ -203,9 +203,10 @@ object BulletSearch {
 
     fun sourceLabel(b: Bullet): String = when {
         b.source != "library" -> "My bullet"
+        b.replacedBy.isNotEmpty() -> "Older library data"
         b.collection.isBlank() -> "Bullet library"
-        b.collection.length <= 24 -> b.collection
-        else -> b.collection.take(23) + "…"
+        b.collection.length <= 30 -> b.collection
+        else -> b.collection.take(29) + "…"
     }
 
     fun title(b: Bullet): String =
@@ -229,16 +230,18 @@ object LoadFlags {
     const val ZERO = "Zero not confirmed"
     const val MV_NEEDED = "Muzzle velocity needed"
     const val MV_PREDICTED = "Muzzle velocity not measured"
+    const val NEWER_BULLET_DATA = "Newer bullet data available"
 
     fun mvNeeded(l: Load) = l.muzzleVelocityFps < 300
 
-    fun list(l: Load): List<String> = buildList {
+    fun list(l: Load, bullet: Bullet? = null): List<String> = buildList {
         if (mvNeeded(l)) add(MV_NEEDED)
         else if (l.muzzleVelocitySource == com.longrange.dragcurve.exchange.EmpiricalLink.MV_PREDICTED) add(MV_PREDICTED)
         if (!l.zeroConfirmed) add(ZERO)
+        if (bullet != null && bullet.replacedBy.isNotEmpty()) add(NEWER_BULLET_DATA)
     }
 
-    fun text(l: Load): String? = list(l).takeIf { it.isNotEmpty() }?.joinToString(" · ", prefix = "⚠ ")
+    fun text(l: Load, bullet: Bullet? = null): String? = list(l, bullet).takeIf { it.isNotEmpty() }?.joinToString(" · ", prefix = "⚠ ")
 }
 
 object RecipeText {

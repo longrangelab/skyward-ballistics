@@ -16,6 +16,7 @@ import com.longrange.dragcurve.model.DragModel
 import com.longrange.dragcurve.exchange.Ep
 import com.longrange.dragcurve.exchange.EmpiricalLink
 import com.longrange.dragcurve.exchange.EpCatalog
+import com.longrange.dragcurve.exchange.BulletGroups
 import com.longrange.dragcurve.model.Load
 import com.longrange.dragcurve.model.Recipe
 
@@ -190,6 +191,13 @@ class LoadEditActivity : CalcActivity() {
                     bulletIsNew && b.name.isBlank() -> "Enter the BC below, or tap to search the bullet library and your bullets"
                     else -> "My bullet. Tap to search for another bullet"
                 }) { changeBullet() }
+            val newer = b.replacedBy.takeIf { it.isNotEmpty() }?.let { store.bullet(it) }
+            if (newer != null) nav("Newer data for this bullet", "Use it", sub = "The library was updated: ${BulletGroups.change(b, newer)}. " +
+                "This ammo keeps the data it was set up with until you switch. Check your dope after switching.") { useBullet(newer, keepDrag = true) }
+            if (!bulletIsNew) sourcesOf(b)?.let { g ->
+                nav("Data source", BulletSearch.sourceLabel(b), sub = BulletGroups.dataKind(b).replaceFirstChar { it.uppercase() } +
+                    ". Also in ${g.others.size} other source${if (g.others.size == 1) "" else "s"}: tap to choose") { chooseSource(g) }
+            }
             if (isLibrary) {
                 info("Diameter", Num.trim(b.diameterIn, 3) + " in")
                 info("Weight", Num.trim(b.weightGr, 1) + " gr")
@@ -306,14 +314,17 @@ class LoadEditActivity : CalcActivity() {
     private fun setRecipe(f: Recipe.() -> Recipe) { load = load.copy(recipe = recipe().f().takeIf { !it.isEmpty }) }
 
     private fun recipeSection(l: Load) {
-        val catalog = EpCatalog.fromJson(store.empiricalCatalog())
+        val catalog = EpCatalog.fromJson(store.empiricalCatalog()).plus(EpCatalog.fromJson(store.componentCatalog()))
         val others = store.loads(null).mapNotNull { it.recipe }
+        val ctg = load.externalIds[Ep.KEY_CARTRIDGE]
+        val brass = catalog.brass.filter { it.parent.isEmpty() || ctg == null || it.parent == ctg }
+            .groupBy { it.name }.map { (name, l) -> if (l.size == 1) l[0] else EpCatalog.Entry(name, "") }
         form.foldable("Reloading recipe", { RecipeText.summary(load.recipe) }, recipeOpen, { open -> recipeOpen = open }) {
             val rc = l.recipe ?: Recipe()
             pick("Powder", rc.powder, catalog.powders, others.map { it.powder }, Ep.KEY_POWDER) { copy(powder = it) }
             number("Charge Weight", Quantity.WEIGHT, rc.chargeGr, { v -> setRecipe { copy(chargeGr = v?.takeIf { it > 0 }) } }, decimals = 2, hint = "optional")
             pick("Primer", rc.primer, catalog.primers, others.map { it.primer }, Ep.KEY_PRIMER) { copy(primer = it) }
-            pick("Case (brass)", rc.brass, catalog.brass, others.map { it.brass }, Ep.KEY_BRASS) { copy(brass = it) }
+            pick("Case (brass)", rc.brass, brass, others.map { it.brass }, Ep.KEY_BRASS) { copy(brass = it) }
             number("Times Fired", Quantity.PLAIN, rc.firings?.toDouble(), { v -> setRecipe { copy(firings = v?.takeIf { it >= 0 }?.toInt()) } }, decimals = 0, hint = "optional")
             pick("Bullet (as loaded)", rc.bullet, catalog.bullets, others.map { it.bullet }, Ep.KEY_BULLET,
                 sub = "The bullet in your reloading record. Drag comes from the Bullet chosen at the top") { copy(bullet = it) }
@@ -333,7 +344,7 @@ class LoadEditActivity : CalcActivity() {
     ) {
         val names = (known.map { it.name } + used.filter { it.isNotBlank() }).distinct()
         fun apply(name: String) {
-            val id = known.firstOrNull { it.name == name }?.id
+            val id = known.firstOrNull { it.name == name }?.id?.takeIf { it.isNotEmpty() }
             setRecipe { set(name) }
             load = load.copy(externalIds = if (id != null) load.externalIds + (key to id) else load.externalIds - key)
             render()
@@ -349,6 +360,7 @@ class LoadEditActivity : CalcActivity() {
         }
         nav(label, value.ifBlank { "—" }, sub = sub) {
             if (names.isEmpty()) { type(); return@nav }
+            if (names.size > 15) { searchPick(label, names, ::apply, ::type, if (value.isNotBlank()) ({ apply("") }) else null); return@nav }
             val items = names + listOf("Type it in…") + (if (value.isNotBlank()) listOf("Clear") else emptyList())
             MaterialAlertDialogBuilder(this@LoadEditActivity).setTitle(label)
                 .setItems(items.toTypedArray()) { _, i ->
@@ -362,8 +374,56 @@ class LoadEditActivity : CalcActivity() {
         }
     }
 
+    private fun searchPick(title: String, names: List<String>, onName: (String) -> Unit, onType: () -> Unit, onClear: (() -> Unit)?) {
+        val box = android.widget.LinearLayout(this).apply { orientation = android.widget.LinearLayout.VERTICAL; setPadding(dp(20), dp(8), dp(20), 0) }
+        val input = android.widget.EditText(this).apply { hint = "Search ${names.size}…"; setSingleLine(); textSize = 18f }
+        val shown = ArrayList(names)
+        val adapter = android.widget.ArrayAdapter(this, android.R.layout.simple_list_item_1, shown)
+        val list = android.widget.ListView(this).apply { this.adapter = adapter }
+        box.addView(input)
+        box.addView(list, android.widget.LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(380)))
+        val dialog = MaterialAlertDialogBuilder(this).setTitle(title).setView(box)
+            .setPositiveButton("Type it in…") { _, _ -> onType() }
+            .apply { if (onClear != null) setNeutralButton("Clear") { _, _ -> onClear() } }
+            .setNegativeButton(android.R.string.cancel, null).show()
+        input.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
+            override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
+            override fun afterTextChanged(s: android.text.Editable?) {
+                val words = s?.toString().orEmpty().lowercase().split(Regex("\\s+")).filter { it.isNotBlank() }
+                adapter.clear()
+                adapter.addAll(names.filter { n -> n.lowercase().let { low -> words.all { low.contains(it) } } })
+            }
+        })
+        list.setOnItemClickListener { _, _, pos, _ -> adapter.getItem(pos)?.let { dialog.dismiss(); onName(it) } }
+    }
+
     private fun zeroAtmo(f: com.longrange.dragcurve.model.Atmosphere.() -> com.longrange.dragcurve.model.Atmosphere) {
         load.zeroAtmosphere?.let { load = load.copy(zeroAtmosphere = it.f()) }
+    }
+
+    private fun sourcesOf(b: Bullet): BulletGroups.Group? =
+        BulletGroups.group(store.userBullets() + store.libraryBullets()).firstOrNull { g -> g.members.size > 1 && g.members.any { it.id == b.id } }
+
+    private fun chooseSource(g: BulletGroups.Group) {
+        val labels = g.members.map { "${BulletSearch.sourceLabel(it)}: ${BulletGroups.dataKind(it)}" }
+        MaterialAlertDialogBuilder(this).setTitle("Data for ${BulletSearch.title(bullet)}")
+            .setSingleChoiceItems(labels.toTypedArray(), g.members.indexOfFirst { it.id == bullet.id }) { d, i ->
+                d.dismiss()
+                val pick = g.members[i]
+                BulletSources.setPreferred(this, g.key, pick.id)
+                if (pick.id != bullet.id) useBullet(pick, keepDrag = false)
+            }
+            .setNegativeButton(android.R.string.cancel, null).show()
+    }
+
+    private fun useBullet(b: Bullet, keepDrag: Boolean) {
+        val keep = keepDrag && src in BcSelection.choices(b)
+        bullet = b; bulletIsNew = false
+        load = load.copy(bulletId = b.id)
+        if (!keep) resetDrag(BcSelection.default(b))
+        else if (src != DragSource.CUSTOM) resetDrag(src)
+        render()
     }
 
     private fun changeBullet() =
@@ -410,7 +470,9 @@ class LoadEditActivity : CalcActivity() {
             }
         }
         l = BcSelection.apply(l.copy(bulletId = b.id, zeroConfirmed = true, recipe = l.recipe?.takeIf { !it.isEmpty }), b, src, editModel, finalRows)
+        val before = store.loads(null).firstOrNull { it.id == l.id }?.bulletId
         store.saveLoad(l)
+        if (before != null && before != l.bulletId) store.dropReplacedLibraryBullet(before)
         val (selR, selL) = store.selection()
         if (selR == l.rifleId && (selL == null || isNew)) store.saveSelection(l.rifleId, l.id)
         initial = snapshot()

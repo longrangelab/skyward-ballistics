@@ -102,6 +102,8 @@ class JsonProfileStore(
         var added = 0; var updated = 0; var same = 0; var skipped = 0
         val msgs = mutableListOf<String>()
         val touched = HashSet<String>()
+        val used = loads(null).map { it.bulletId }.toSet()
+        val repoint = HashMap<String, String>()
         for (b0 in libs.bullets) {
             val b = b0.copy(source = "library", updatedAt = if (b0.updatedAt == 0L) now else b0.updatedAt)
             if (b.id in users) { skipped++; msgs += "Library bullet '${b.name}' skipped: a bullet of your own already has its id."; continue }
@@ -109,14 +111,50 @@ class JsonProfileStore(
             when {
                 ex == null -> { cur[b.id] = b; added++; touched += b.id }
                 ex.copy(updatedAt = 0) == b.copy(updatedAt = 0) -> same++
-                else -> { cur[b.id] = b; updated++; touched += b.id }
+                else -> {
+                    if (!isSyncing && ex.id in used && ex.replacedBy.isEmpty() && b.replacedBy.isEmpty() && !sameDragData(ex, b)) {
+                        var rid = replacedId(ex)
+                        while (cur[rid]?.let { sameDragData(it, ex) } == false) rid += "x"
+                        cur[rid] = ex.copy(id = rid, replacedBy = ex.id, libraryOrder = null, updatedAt = now)
+                        repoint[ex.id] = rid; touched += rid
+                    }
+                    cur[b.id] = b; updated++; touched += b.id
+                }
             }
         }
         if (same > 0) msgs.add(0, "$same library bullet(s) were already up to date.")
+        if (repoint.isNotEmpty()) {
+            val n = loads(null).count { it.bulletId in repoint }
+            writeLoads(loads(null).map { l -> repoint[l.bulletId]?.let { l.copy(bulletId = it, updatedAt = now) } ?: l })
+            msgs += "${repoint.size} bullet(s) that your ammo uses got new data. That ammo ($n) keeps the data it was set up with; " +
+                "open it to see the newer data and switch when you are ready."
+        }
         writeLibrary(cur.values.toList())
         val tombs = tombstones()
         if (tombs.any { it.kind == LIBRARY_BULLET && it.id in touched }) writeTombs(tombs.filterNot { it.kind == LIBRARY_BULLET && it.id in touched })
         return ImportReport(added = added, updated = updated, renamed = 0, skipped = skipped + same, messages = msgs)
+    }
+
+    @Synchronized override fun updateLibraryCollection(collection: String, bullets: List<Bullet>): ImportReport {
+        require(bullets.all { it.collection == collection }) { "Every bullet must belong to \"$collection\"." }
+        val rep = importBulletLibrary(Libraries(bullets = bullets))
+        val keep = bullets.map { it.id }.toSet()
+        val used = loads(null).map { it.bulletId }.toSet()
+        val all = libraryBullets()
+        val drop = all.filter { it.collection == collection && it.id !in keep && it.id !in used }.map { it.id }.toSet()
+        if (drop.isEmpty()) return rep
+        val gone = all.count { it.id in drop && it.replacedBy.isEmpty() }
+        writeLibrary(all.filterNot { it.id in drop })
+        remember(drop.map { Tombstone(LIBRARY_BULLET, it, clock()) })
+        return if (gone == 0) rep else rep.copy(deleted = rep.deleted + gone, messages = rep.messages + "$gone bullet(s) no longer in \"$collection\" were removed.")
+    }
+
+    @Synchronized override fun dropReplacedLibraryBullet(id: String): Boolean {
+        val b = libraryById(id) ?: return false
+        if (b.replacedBy.isEmpty() || loads(null).any { it.bulletId == id }) return false
+        writeLibrary(libraryBullets().filter { it.id != id })
+        remember(listOf(Tombstone(LIBRARY_BULLET, id, clock())))
+        return true
     }
 
     @Synchronized override fun clearBulletLibrary(): Boolean {
@@ -327,6 +365,10 @@ class JsonProfileStore(
         val e = s.optJSONObject("empirical") ?: JSONObject()
         if (json == null) e.remove("catalog") else e.put("catalog", JSONObject(json))
         s.put("empirical", e)
+    }
+    @Synchronized override fun componentCatalog(): String? = readObject(COMPONENTS)?.toString()
+    @Synchronized override fun saveComponentCatalog(json: String?) {
+        if (json == null) File(dir, COMPONENTS).delete() else writeText(COMPONENTS, json)
     }
     @Synchronized override fun empiricalLastHash(): String? = state().optJSONObject("empirical")?.optSN("lastHash")
     @Synchronized override fun saveEmpiricalLastHash(h: String?) = saveState { s ->
@@ -732,6 +774,7 @@ class JsonProfileStore(
         const val SHOTS = "shots.json"
         const val SETTINGS = "settings.json"
         const val STATE = "state.json"
+        const val COMPONENTS = "components.json"
         const val FILE_VERSION = 1
         const val IMPORTED = " (imported)"
         const val TOMBSTONE_DAYS = 180
@@ -741,5 +784,12 @@ class JsonProfileStore(
         const val CARD = "card"
         const val SHOT = "shot"
         const val LIBRARY_BULLET = "library"
+
+        fun sameDragData(a: Bullet, b: Bullet): Boolean =
+            a.dragModel == b.dragModel && a.bcPoints == b.bcPoints && a.dragCurve == b.dragCurve &&
+                a.seasonalBcPoints == b.seasonalBcPoints && a.diameterIn == b.diameterIn && a.weightGr == b.weightGr &&
+                a.lengthIn == b.lengthIn && a.noseLengthIn == b.noseLengthIn
+
+        fun replacedId(b: Bullet): String = "${b.id}~${b.updatedAt}"
     }
 }
