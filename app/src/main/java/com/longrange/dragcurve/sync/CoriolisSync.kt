@@ -184,7 +184,7 @@ object CoriolisSync {
             if (found == null) {
                 val was = inRange
                 inRange = false; baseNetwork = null
-                val o = SharedFileSync.Outcome.Failed("No Coriolis base station in range. Join its Wi-Fi (Wind Lab) and try again.")
+                val o = SharedFileSync.Outcome.Failed("No Coriolis base station in range. Join its Wi-Fi (WindStation) and try again.")
                 // Out of range is normal: don't turn the status line into a warning for it.
                 if (!quietWhenAway) record(o) else if (was) notifyListeners()
                 return o
