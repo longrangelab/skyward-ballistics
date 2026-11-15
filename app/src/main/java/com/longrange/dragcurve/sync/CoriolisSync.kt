@@ -48,6 +48,10 @@ object CoriolisSync {
         if (::app.isInitialized) return
         app = c.applicationContext
         if (prefs().getString(K_DEVICE, null) == null) prefs().edit().putString(K_DEVICE, UUID.randomUUID().toString()).apply()
+        if (prefs().getInt(K_STATE_VERSION, 0) < STATE_VERSION) {
+            prefs().edit().remove("waiting").remove(K_RESULT).remove(K_RESULT_OK).remove(K_LAST_OK)
+                .putInt(K_STATE_VERSION, STATE_VERSION).apply()
+        }
         (app as? Application)?.registerActivityLifecycleCallbacks(object : Application.ActivityLifecycleCallbacks {
             override fun onActivityResumed(a: Activity) { if (++visible == 1) schedulePeriodic() }
             override fun onActivityPaused(a: Activity) { if (--visible <= 0) { visible = 0; main.removeCallbacks(periodic) } }
@@ -231,4 +235,6 @@ object CoriolisSync {
     private const val K_SEND_PRIVATE = "sendUsedPrivate"
     private const val K_LAST_VER = "lastVer"
     private const val K_LAST_HASH = "lastHash"
+    private const val K_STATE_VERSION = "stateVersion"
+    private const val STATE_VERSION = 2
 }
