@@ -32,6 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.longrange.dragcurve.model.BarrelCare
 import com.longrange.dragcurve.model.Rifle
 import com.longrange.dragcurve.model.ShotRecord
 
@@ -48,17 +49,23 @@ fun RoundsScreen(st: AppState) {
     var adding by remember { mutableStateOf(false) }
 
     Column(Modifier.fillMaxSize()) {
-        ScreenTitle("Round count", "Log the rounds you fire through each firearm. Each entry keeps its date and time and travels with your backups.")
+        ScreenTitle("Round count", "Log the rounds you fire through each firearm and when you clean the barrel. Each entry keeps its date and time and travels with your backups.")
         if (rifle == null) { Note("Add a firearm under My gear first."); return@Column }
         Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
             LazyColumn(Modifier.width(320.dp).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 items(rifles, key = { it.id }) { r ->
-                    val total = allShots.filter { it.rifleId == r.id }.sumOf { it.count }
+                    val mine = allShots.filter { it.rifleId == r.id }
+                    val total = mine.sumOf { it.count }
+                    val care = BarrelCare.status(mine, r.cleanEveryRounds)
                     Card(Modifier.fillMaxWidth().clickable { selId = r.id },
                         colors = CardDefaults.cardColors(containerColor = if (r.id == rifle.id) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLow)) {
                         Column(Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
                             Text(r.name, fontWeight = FontWeight.SemiBold)
                             Note("${CalcCore.count(total)} rounds")
+                            CleanCore.line(care)?.let { s ->
+                                if (care.due) Text(s.replaceFirstChar { it.uppercase() }, color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.SemiBold)
+                                else Note(s.replaceFirstChar { it.uppercase() })
+                            }
                         }
                     }
                 }
@@ -81,7 +88,8 @@ fun RoundsScreen(st: AppState) {
 @Composable
 private fun RifleCounter(st: AppState, rifle: Rifle, onExact: () -> Unit, onEdit: (ShotRecord) -> Unit) {
     val store = st.store
-    val list = remember(st.rev, rifle.id) { store.shotRecords(rifle.id) }
+    val all = remember(st.rev, rifle.id) { store.shotRecords(rifle.id) }
+    val list = BarrelCare.rounds(all)
     val total = list.sumOf { it.count }
     ScrollColumn(Modifier.fillMaxHeight()) {
         Section(rifle.name) {
@@ -102,10 +110,20 @@ private fun RifleCounter(st: AppState, rifle: Rifle, onExact: () -> Unit, onEdit
                 OutlinedButton(onClick = onExact, modifier = Modifier.width(470.dp)) { Text("Exact count…") }
             }
         }
+        BarrelCleaningSection(st, rifle, all)
         Section("History") {
             if (list.isEmpty()) Note("Press a button above after a range session. For a firearm that has been shot before, use Exact count with the count so far.")
             var running = total
-            list.sortedByDescending { it.recordedAt }.forEach { s ->
+            val first = list.minOfOrNull { it.recordedAt } ?: Long.MAX_VALUE
+            (list + BarrelCare.cleanings(all).filter { it.recordedAt >= first }).sortedByDescending { it.recordedAt }.forEach { s ->
+                if (s.isCleaning) {
+                    HorizontalDivider()
+                    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text("Cleaned", Modifier.width(90.dp), fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+                        Text(listOfNotNull(CalcCore.time(s.recordedAt), s.note.takeIf { it.isNotBlank() }).joinToString(" · "), Modifier.weight(1f))
+                    }
+                    return@forEach
+                }
                 val after = running
                 running -= s.count
                 HorizontalDivider()

@@ -19,6 +19,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.longrange.dragcurve.R
 import com.longrange.dragcurve.analysis.TnfCompare
+import com.longrange.dragcurve.model.BarrelCare
 import com.longrange.dragcurve.model.Bullet
 import com.longrange.dragcurve.model.DragModel
 import com.longrange.dragcurve.model.Libraries
@@ -82,7 +83,8 @@ object ShotText {
 
     fun count(n: Int): String = String.format(Locale.US, "%,d", n)
 
-    fun summary(c: Context, list: List<ShotRecord>): String? {
+    fun summary(c: Context, all: List<ShotRecord>): String? {
+        val list = BarrelCare.rounds(all)
         if (list.isEmpty()) return null
         val last = list.maxByOrNull { it.recordedAt }!!
         return "${count(list.sumOf { it.count })} rounds · last ${signed(last.count)}, ${time(c, last.recordedAt)}"
@@ -110,8 +112,10 @@ class ShotCounterActivity : CalcActivity() {
         supportActionBar?.subtitle = rifle.name
         form.settings = settings
         form.clear()
-        val list = store.shotRecords(rifleId)
+        val all = store.shotRecords(rifleId)
+        val list = BarrelCare.rounds(all)
         val total = list.sumOf { it.count }
+        val care = BarrelCare.status(all, rifle.cleanEveryRounds)
 
         form.addView(View(this).apply { layoutParams = LinearLayout.LayoutParams(1, dp(8)) })
         form.group {
@@ -127,6 +131,12 @@ class ShotCounterActivity : CalcActivity() {
                     "rounds fired · last logged ${ShotText.time(this@ShotCounterActivity, list.maxOf { it.recordedAt })}"
                 gravity = Gravity.CENTER; setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
                 setTextColor(themeColor(MR.attr.colorOnSurfaceVariant))
+            })
+            if (care.due) col.addView(TextView(this@ShotCounterActivity).apply {
+                text = "Due for a cleaning: ${ShotText.count(care.sinceCleaning)} rounds since the last"
+                gravity = Gravity.CENTER; setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f); typeface = Typeface.DEFAULT_BOLD
+                setPadding(0, dp(6), 0, 0); setTextColor(themeColor(MR.attr.colorError))
+                setOnClickListener { BarrelCleaningActivity.open(this@ShotCounterActivity, rifleId) }
             })
             val quick = LinearLayout(this@ShotCounterActivity).apply { orientation = LinearLayout.HORIZONTAL; setPadding(0, dp(16), 0, 0) }
             for (n in QUICK) {
@@ -149,12 +159,28 @@ class ShotCounterActivity : CalcActivity() {
             custom(col)
         }
         form.note("Each entry is saved with the date and time you logged it, and goes with your firearm into backups and Google Drive sync.")
+        form.group {
+            nav(getString(R.string.calc_barrel_cleaning), ShotText.count(care.sinceCleaning),
+                sub = when {
+                    care.lastCleaned == null -> "Rounds since cleaning. Log when you clean the barrel"
+                    else -> "Rounds since cleaning · cleaned ${CleanText.day(care.lastCleaned.recordedAt)}" + if (care.due) " · due" else ""
+                }) {
+                BarrelCleaningActivity.open(this@ShotCounterActivity, rifleId)
+            }
+        }
 
         form.header("History")
         if (list.isEmpty()) form.note("Tap a button above after a range session. To start from a rifle that has been shot before, use Exact count with the count so far.")
         else form.group {
             var running = total
-            list.sortedByDescending { it.recordedAt }.forEach { s ->
+            val first = list.minOf { it.recordedAt }
+            (list + BarrelCare.cleanings(all).filter { it.recordedAt >= first }).sortedByDescending { it.recordedAt }.forEach { s ->
+                if (s.isCleaning) {
+                    nav("Cleaned", "", sub = listOfNotNull(ShotText.time(this@ShotCounterActivity, s.recordedAt), s.note.takeIf { it.isNotBlank() }).joinToString(" · ")) {
+                        BarrelCleaningActivity.open(this@ShotCounterActivity, rifleId)
+                    }
+                    return@forEach
+                }
                 val after = running
                 running -= s.count
                 nav(ShotText.signed(s.count), "", sub = listOfNotNull(ShotText.time(this@ShotCounterActivity, s.recordedAt),
@@ -167,7 +193,9 @@ class ShotCounterActivity : CalcActivity() {
         val rec = store.saveShotRecord(ShotRecord(id = "", rifleId = rifleId, count = n, recordedAt = System.currentTimeMillis(), note = note.trim()))
         render()
         val root = findViewById<View>(R.id.content) ?: return
-        Snackbar.make(root, "Added ${ShotText.signed(n)} rounds at ${ShotText.time(this, rec.recordedAt)}", 6000)
+        val every = store.rifles().firstOrNull { it.id == rifleId }?.cleanEveryRounds
+        val due = BarrelCare.status(store.shotRecords(rifleId), every).due
+        Snackbar.make(root, "Added ${ShotText.signed(n)} rounds at ${ShotText.time(this, rec.recordedAt)}" + (if (due) ". Due for a cleaning." else ""), 6000)
             .setAction("Undo") { store.deleteShotRecord(rec.id); render() }.show()
     }
 

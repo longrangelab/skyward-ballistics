@@ -1,6 +1,7 @@
 package com.longrange.dragcurve.store
 
 import com.longrange.dragcurve.model.AppSettings
+import com.longrange.dragcurve.model.BarrelCare
 import com.longrange.dragcurve.model.Bullet
 import com.longrange.dragcurve.model.ImportReport
 import com.longrange.dragcurve.model.Libraries
@@ -251,7 +252,7 @@ class JsonProfileStore(
     }
 
     @Synchronized override fun saveShotRecord(s: ShotRecord): ShotRecord {
-        val rec = (if (s.id.isBlank()) s.copy(id = newId()) else s).copy(updatedAt = clock())
+        val rec = (if (s.id.isBlank()) s.copy(id = shotId(s)) else s).copy(updatedAt = clock())
         writeShots(upsert(shotRecords(), rec) { it.id })
         forget(SHOT, rec.id)
         return rec
@@ -261,6 +262,8 @@ class JsonProfileStore(
         if (shotRecords().any { it.id == id }) writeShots(shotRecords().filter { it.id != id })
         remember(listOf(Tombstone(SHOT, id, clock())))
     }
+
+    private fun shotId(s: ShotRecord) = if (s.isCleaning) BarrelCare.ID_PREFIX + newId() else newId()
 
     private fun dropShots(now: Long, rifleId: String): List<Tombstone> {
         val drop = shotRecords().filter { it.rifleId == rifleId }
@@ -546,7 +549,7 @@ class JsonProfileStore(
             when (decide(ex?.updatedAt, ex != null && ex.copy(updatedAt = 0) == s.copy(updatedAt = 0), s.updatedAt, tombs[SHOT to s.id], kind)) {
                 Outcome.ADD -> { shots += s.copy(updatedAt = stamp(s.updatedAt)); tombs.remove(SHOT to s.id); added++ }
                 Outcome.IDENTICAL -> identical++
-                Outcome.RENAME -> { if (ex == null || ex.copy(updatedAt = 0, rifleId = "") != s.copy(updatedAt = 0, rifleId = "")) { shots += s.copy(id = newId(), updatedAt = now); renamed++ } else identical++ }
+                Outcome.RENAME -> { if (ex == null || ex.copy(updatedAt = 0, rifleId = "") != s.copy(updatedAt = 0, rifleId = "")) { shots += s.copy(id = shotId(s), updatedAt = now); renamed++ } else identical++ }
                 Outcome.REPLACE -> { shots[i] = s; updated++ }
                 Outcome.KEEP_LOCAL -> skipped++
                 Outcome.STAY_DELETED -> skipped++

@@ -67,6 +67,7 @@ data class Rifle(
     val updatedAt: Long = 0,
     val cartridge: String = "",
     val externalIds: Map<String, String> = emptyMap(),
+    val cleanEveryRounds: Int? = null,
 )
 
 data class Atmosphere(

@@ -59,7 +59,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 
 const val APP_NAME = "Skyward Ballistics"
-const val APP_VERSION = "1.5.2"
+const val APP_VERSION = "1.6"
 
 enum class Screen(val title: String, val icon: ImageVector) {
     CALC("Calculator", Icons.Filled.Home),

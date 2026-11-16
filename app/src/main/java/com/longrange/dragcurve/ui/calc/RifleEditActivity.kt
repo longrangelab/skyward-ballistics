@@ -6,6 +6,7 @@ import android.view.MenuItem
 import android.widget.ScrollView
 import com.longrange.dragcurve.R
 import com.longrange.dragcurve.model.AngleUnit
+import com.longrange.dragcurve.model.BarrelCare
 import com.longrange.dragcurve.model.Rifle
 import com.longrange.dragcurve.model.TwistDirection
 
@@ -14,6 +15,7 @@ class RifleEditActivity : CalcActivity() {
     private lateinit var initial: String
     private var isNew = true
     private lateinit var form: Form
+    private var shown = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -28,6 +30,12 @@ class RifleEditActivity : CalcActivity() {
         form = contentForm()
         guardUnsaved { DraftCodec.rifle(draft) != initial }
         render()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (shown && !isNew) render()
+        shown = true
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -104,6 +112,14 @@ class RifleEditActivity : CalcActivity() {
                     sub = ShotText.summary(this@RifleEditActivity, list)?.substringAfter(" · ")?.replaceFirstChar { it.uppercase() } ?: "Log the rounds you fire, with the date and time") {
                     ShotCounterActivity.open(this@RifleEditActivity, r.id)
                 }
+                val care = BarrelCare.status(list, store.rifles().firstOrNull { it.id == r.id }?.cleanEveryRounds)
+                nav(getString(R.string.calc_barrel_cleaning), ShotText.count(care.sinceCleaning),
+                    sub = when {
+                        care.lastCleaned == null -> "Rounds since cleaning. Log when you clean the barrel"
+                        else -> "Rounds since cleaning · cleaned ${CleanText.day(care.lastCleaned.recordedAt)}" + if (care.due) " · due" else ""
+                    }) {
+                    BarrelCleaningActivity.open(this@RifleEditActivity, r.id)
+                }
             }
         }
 
@@ -120,7 +136,8 @@ class RifleEditActivity : CalcActivity() {
 
     private fun save() {
         currentFocus?.let { Form.hideKeyboard(it) }
-        val r = draft.copy(name = draft.name.trim())
+        val saved = store.rifles().firstOrNull { it.id == draft.id }
+        val r = draft.copy(name = draft.name.trim(), cleanEveryRounds = if (saved != null) saved.cleanEveryRounds else draft.cleanEveryRounds)
         when {
             r.name.isEmpty() -> return alert("Missing name", "Give the firearm a profile name.")
             r.twistIn <= 0 -> return alert("Barrel twist", "Enter the barrel twist (inches per turn).")
