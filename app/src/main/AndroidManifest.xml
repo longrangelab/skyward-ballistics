@@ -39,6 +39,7 @@
         <activity android:name=".ui.calc.MyGearActivity" android:exported="false" android:theme="@style/Theme.DragCurve.Calc" />
         <activity android:name=".ui.calc.MoreActivity" android:exported="false" android:theme="@style/Theme.DragCurve.Calc" />
         <activity android:name=".ui.calc.ShotCounterActivity" android:exported="false" android:theme="@style/Theme.DragCurve.Calc" />
+        <activity android:name=".ui.calc.BarrelCleaningActivity" android:exported="false" android:theme="@style/Theme.DragCurve.Calc" />
         <activity android:name=".ui.calc.PartsActivity" android:exported="false" android:theme="@style/Theme.DragCurve.Calc" />
         <activity android:name=".ui.calc.AnalysisActivity" android:exported="false" android:theme="@style/Theme.DragCurve.Calc" />
         <activity android:name=".ui.calc.HitSimActivity" android:exported="false" android:theme="@style/Theme.DragCurve.Calc" />

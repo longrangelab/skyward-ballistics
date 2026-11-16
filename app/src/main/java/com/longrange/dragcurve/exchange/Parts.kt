@@ -88,7 +88,10 @@ object Parts {
                     else -> PartStatus.UPDATE
                 }
             }
-            out += Part(PartKind.ROUNDS, rifleId, name, "$total rounds in ${list.size} entr${if (list.size == 1) "y" else "ies"}", st)
+            val entries = list.count { !it.isCleaning }
+            val cleans = list.size - entries
+            out += Part(PartKind.ROUNDS, rifleId, name, "$total rounds in $entries entr${if (entries == 1) "y" else "ies"}" +
+                (if (cleans > 0) " · $cleans cleaning${if (cleans == 1) "" else "s"}" else ""), st)
         }
         return out
     }

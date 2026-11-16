@@ -32,6 +32,7 @@ object DraftCodec {
         put("ecf", r.elevationCorrection); put("wcf", r.windageCorrection); put("notes", r.notes)
         r.externalRef?.let { put("ext", it) }
         put("cart", r.cartridge); put("xids", JsonCodec.externalIds(r.externalIds))
+        r.cleanEveryRounds?.let { put("cer", it) }
     }.toString()
 
     fun rifle(s: String): Rifle = JSONObject(s).let { o ->
@@ -42,7 +43,8 @@ object DraftCodec {
             windageUnit = AngleUnit.valueOf(o.getString("wu")), windageClick = o.getDouble("wc"),
             elevationCorrection = o.getDouble("ecf"), windageCorrection = o.getDouble("wcf"),
             notes = o.optString("notes"), externalRef = o.optS("ext"),
-            cartridge = o.optString("cart"), externalIds = JsonCodec.externalIds(o.optJSONObject("xids")))
+            cartridge = o.optString("cart"), externalIds = JsonCodec.externalIds(o.optJSONObject("xids")),
+            cleanEveryRounds = o.optInt("cer", 0).takeIf { it > 0 })
     }
 
     fun load(l: Load): String = JSONObject().apply {

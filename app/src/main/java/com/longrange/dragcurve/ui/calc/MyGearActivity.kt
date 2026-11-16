@@ -20,6 +20,7 @@ import com.google.android.material.card.MaterialCardView
 import com.longrange.dragcurve.R
 import com.longrange.dragcurve.exchange.BrowseKind
 import com.longrange.dragcurve.model.Load
+import com.longrange.dragcurve.model.BarrelCare
 import com.longrange.dragcurve.model.Rifle
 import com.google.android.material.R as MR
 
@@ -169,7 +170,8 @@ class MyGearActivity : CalcActivity() {
             setOnClickListener { ShotCounterActivity.open(this@MyGearActivity, r.id) }
         }
         row.addView(TextView(this).apply {
-            text = ShotText.summary(this@MyGearActivity, list) ?: "No rounds logged"
+            text = listOfNotNull(ShotText.summary(this@MyGearActivity, list) ?: "No rounds logged",
+                CleanText.line(BarrelCare.status(list, r.cleanEveryRounds))?.replaceFirstChar { it.uppercase() }).joinToString("\n")
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
             setTextColor(themeColor(MR.attr.colorOnSurfaceVariant))
         }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))

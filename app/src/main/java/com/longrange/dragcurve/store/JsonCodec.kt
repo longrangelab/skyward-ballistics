@@ -3,6 +3,7 @@ package com.longrange.dragcurve.store
 import com.longrange.dragcurve.model.AppSettings
 import com.longrange.dragcurve.model.Atmosphere
 import com.longrange.dragcurve.model.BcPoint
+import com.longrange.dragcurve.model.BarrelCare
 import com.longrange.dragcurve.model.Bullet
 import com.longrange.dragcurve.model.CardTarget
 import com.longrange.dragcurve.model.CdPoint
@@ -183,6 +184,7 @@ object JsonCodec {
         .put("notes", r.notes)
         .putOpt2("externalRef", r.externalRef)
         .putOpt2("externalIds", r.externalIds.takeIf { it.isNotEmpty() }?.let { externalIds(it) })
+        .putOpt2("cleanEveryRounds", r.cleanEveryRounds)
         .putStamp(r.updatedAt)
 
     fun rifle(o: JSONObject): Rifle {
@@ -206,6 +208,7 @@ object JsonCodec {
             updatedAt = o.optL("updatedAt"),
             cartridge = o.optS("cartridge", d.cartridge),
             externalIds = externalIds(o.optJSONObject("externalIds")),
+            cleanEveryRounds = o.optInt("cleanEveryRounds", 0).takeIf { it > 0 },
         )
     }
 
@@ -381,6 +384,7 @@ object JsonCodec {
         .put("count", s.count)
         .put("recordedAt", s.recordedAt)
         .also { if (s.note.isNotEmpty()) it.put("note", s.note) }
+        .also { if (s.kind.isNotEmpty()) it.put("kind", s.kind) }
         .putStamp(s.updatedAt)
 
     fun shot(o: JSONObject): ShotRecord = ShotRecord(
@@ -390,6 +394,7 @@ object JsonCodec {
         recordedAt = o.optL("recordedAt"),
         note = o.optS("note", ""),
         updatedAt = o.optL("updatedAt"),
+        kind = o.optS("kind", "").ifEmpty { if (o.optS("id", "").startsWith(BarrelCare.ID_PREFIX)) ShotRecord.CLEANING else "" },
     )
 
     fun shots(l: List<ShotRecord>): JSONArray = JSONArray().also { a -> l.forEach { a.put(shot(it)) } }

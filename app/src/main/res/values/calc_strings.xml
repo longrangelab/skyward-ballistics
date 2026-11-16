@@ -45,6 +45,7 @@
     <string name="calc_tab_gear">My gear</string>
     <string name="calc_tab_analysis">Analysis</string>
     <string name="calc_round_count">Round count</string>
+    <string name="calc_barrel_cleaning">Barrel cleaning</string>
     <string name="calc_tab_more">More</string>
     <string name="calc_hit_sim">Hit probability</string>
     <string name="calc_tnf_compare">TNF compare</string>

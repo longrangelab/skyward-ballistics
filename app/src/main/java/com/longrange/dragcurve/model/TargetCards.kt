@@ -25,4 +25,11 @@ data class ShotRecord(
     val recordedAt: Long,
     val note: String = "",
     val updatedAt: Long = 0L,
-)
+    val kind: String = "",
+) {
+    val isCleaning: Boolean get() = kind == CLEANING
+
+    companion object {
+        const val CLEANING = "cleaning"
+    }
+}

@@ -198,7 +198,8 @@ private fun RifleEditor(st: AppState, initial: Rifle, onSaved: (Rifle) -> Unit, 
         EditorButtons(isNew, onSave = {
             if (r.name.isBlank()) bad.map["name"] = "Give the firearm a name" else bad.map.remove("name")
             if (bad.any) return@EditorButtons
-            val toSave = r.copy(name = r.name.trim(), id = r.id.ifEmpty { newId() })
+            val saved = st.store.rifles().firstOrNull { it.id == r.id }
+            val toSave = r.copy(name = r.name.trim(), id = r.id.ifEmpty { newId() }, cleanEveryRounds = if (saved != null) saved.cleanEveryRounds else r.cleanEveryRounds)
             st.store.saveRifle(toSave)
             st.changed()
             onSaved(st.store.rifles().first { it.id == toSave.id })

@@ -11,7 +11,7 @@ object LibraryWriter {
         "rifles", "loads", "bullets", "deleted", "cards", "shots",
         "id", "rifleId", "rifleName", "loadId", "bulletId", "maker", "name", "caliber", "category", "cartridge",
         "diameterIn", "weightGr", "lengthIn", "noseLengthIn",
-        "twistIn", "twistDirection", "sightHeightIn", "sightOffsetIn", "barrelLengthIn",
+        "twistIn", "twistDirection", "sightHeightIn", "sightOffsetIn", "barrelLengthIn", "cleanEveryRounds",
         "elevationUnit", "elevationClick", "windageUnit", "windageClick", "elevationCorrection", "windageCorrection",
         "muzzleVelocityFps",
         "dragModel", "bcPoints", "seasonalBcPoints", "dragCurve",
